@@ -1,4 +1,5 @@
 
+use std::iter::FromIterator;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::os::linux::fs::MetadataExt;
@@ -17,23 +18,37 @@ fn main() {
 
     while directories.len() != 0 {
         let dir = directories.pop().unwrap();
-        println!("{:?}", dir);
+        // println!("{:?}", dir);
         let path = Path::new(&dir).read_dir().unwrap();
         for entry in path {
             if let Ok(entry) = entry {
                 let pathname = entry.path().to_str().unwrap().to_string();
                 if entry.path().is_dir() {
-                    directories.push(pathname)
+                    directories.push(pathname);
                 } else {
                     let metadata = entry.metadata().expect("metadata call failed");
-                    disk_space.insert(pathname, metadata.st_size());
+                    // disk_space.insert(pathname, metadata.st_size());
+                    let parent = entry.path().parent().unwrap().to_str().unwrap().to_string();
+                    let mut size: u64 = 0;
+                    if disk_space.contains_key(&parent) {
+                        size = *disk_space.get(&parent).unwrap();
+                    }
+                    size += metadata.st_size();
+                    disk_space.insert(parent, size);
                 }
             }
         }
     }
 
-    for (filename, size) in &disk_space {
-        println!("{} {}", size, filename);
+    // for (filename, size) in &disk_space {
+    //     println!("{} {}", size, filename);
+    // }
+
+    let mut sorted = Vec::from_iter(disk_space);
+    sorted.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
+
+    for (filename, size) in sorted {
+        println!("{:>9} {}", simple_units(size), filename);
     }
 
 
@@ -61,4 +76,15 @@ fn main() {
 //        }
 //        disk_space
 //    }
+}
+
+fn simple_units(number: u64) -> String {
+    let units = [ " ", "K", "M", "G", "T", "P" ];
+    let mut index = 0;
+    let mut n = number;
+    while n > 1024 {
+        index += 1;
+        n = n/1024;
+    }
+    format!("{:>5}{}", n, units[index])
 }
