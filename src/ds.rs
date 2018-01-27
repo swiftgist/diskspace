@@ -11,24 +11,32 @@ pub mod diskspace {
         while directories.len() != 0 {
             let dir = directories.pop().unwrap();
             // println!("{:?}", dir);
-            let path = Path::new(&dir).read_dir().unwrap();
-            for entry in path {
-                if let Ok(entry) = entry {
-                    let pathname = entry.path().to_str().unwrap().to_string();
-                    if entry.path().is_dir() {
-                        directories.push(pathname);
-                    } else {
-                        let metadata = entry.metadata().expect("metadata call failed");
-                        disk_space.insert(pathname, metadata.st_size());
-                        let parent = entry.path().parent().unwrap().to_str().unwrap().to_string();
-                        let mut size: u64 = 0;
-                        if disk_space.contains_key(&parent) {
-                            size = *disk_space.get(&parent).unwrap();
+            let path = Path::new(&dir).read_dir();
+            if let Ok(path) = path {
+                for entry in path {
+                    if let Ok(entry) = entry {
+                        let epathname = entry.path();
+                        let rpathname = epathname.to_str();
+                        if let Some(rpathname) = rpathname {
+                            let pathname = rpathname.to_string();
+                            if entry.path().is_dir() {
+                                directories.push(pathname);
+                            } else {
+                                let metadata = entry.metadata().expect("metadata call failed");
+                                disk_space.insert(pathname, metadata.st_size());
+                                let parent = entry.path().parent().unwrap().to_str().unwrap().to_string();
+                                let mut size: u64 = 0;
+                                if disk_space.contains_key(&parent) {
+                                    size = *disk_space.get(&parent).unwrap();
+                                }
+                                size += metadata.st_size();
+                                disk_space.insert(parent, size);
+                            }
                         }
-                        size += metadata.st_size();
-                        disk_space.insert(parent, size);
                     }
                 }
+            } else {
+                println!("Problem with  {}", dir);
             }
         }
         disk_space
