@@ -3,6 +3,7 @@ pub mod diskspace {
     use std::iter::FromIterator;
     use std::collections::BTreeMap;
     use std::path::Path;
+    use std::fs;
     use std::os::linux::fs::MetadataExt;
 
     pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
@@ -11,35 +12,58 @@ pub mod diskspace {
         while directories.len() != 0 {
             let dir = directories.pop().unwrap();
             // println!("{:?}", dir);
-            let path = Path::new(&dir).read_dir();
-            if let Ok(path) = path {
-                for entry in path {
-                    if let Ok(entry) = entry {
-                        let epathname = entry.path();
-                        let rpathname = epathname.to_str();
-                        if let Some(rpathname) = rpathname {
-                            let pathname = rpathname.to_string();
-                            if entry.path().is_dir() {
-                                directories.push(pathname);
-                            } else {
-                                let metadata = entry.metadata().expect("metadata call failed");
-                                disk_space.insert(pathname, metadata.st_size());
-                                let parent = entry.path().parent().unwrap().to_str().unwrap().to_string();
-                                let mut size: u64 = 0;
-                                if disk_space.contains_key(&parent) {
-                                    size = *disk_space.get(&parent).unwrap();
-                                }
-                                size += metadata.st_size();
-                                disk_space.insert(parent, size);
-                            }
-                        }
-                    }
+            // let path = Path::new(&dir).read_dir();
+            let metadata = fs::symlink_metadata(&dir);
+            if let Ok(metadata) = metadata {
+                // println!("{} {:?}", &dir, metadata.file_type().is_symlink());
+                if metadata.file_type().is_symlink() {
+                    continue;
                 }
+            }
+            let path = fs::read_dir(&dir);
+            if let Ok(path) = path {
+                process_path(path, &mut directories, &mut disk_space);
             } else {
                 println!("Problem with  {}", dir);
             }
         }
         disk_space
+
+    }
+
+    fn process_path(path: fs::ReadDir,directories: &mut Vec<String>, disk_space: &mut BTreeMap<String, u64>) {
+
+        for entry in path {
+            if let Ok(entry) = entry {
+                let epathname = entry.path();
+                let rpathname = epathname.to_str();
+                if let Some(rpathname) = rpathname {
+                    let pathname = rpathname.to_string();
+                    if entry.path().is_dir() {
+                        directories.push(pathname);
+                    } else {
+                        let metadata = entry.metadata();
+                        if let Ok(metadata) = metadata {
+                            disk_space.insert(pathname, metadata.st_size());
+                            let eparent = entry.path();
+                            let rparent = eparent.parent();
+                            if let Some(rparent) = rparent {
+                                let sparent = rparent.to_str();
+                                if let Some(sparent) = sparent {
+                                    let parent = sparent.to_string();
+                                    let mut size: u64 = 0;
+                                    if disk_space.contains_key(&parent) {
+                                        size = *disk_space.get(&parent).unwrap();
+                                    }
+                                    size += metadata.st_size();
+                                    disk_space.insert(parent, size);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
     }
 
@@ -59,7 +83,7 @@ pub mod diskspace {
 
     }
 
-    pub fn simple_units(number: u64) -> String {
+    fn simple_units(number: u64) -> String {
         let units = [ " ", "K", "M", "G", "T", "P" ];
         let mut index = 0;
         let mut n = number;
@@ -73,4 +97,35 @@ pub mod diskspace {
             format!("{:>5}{}", n, units[index])
         }
     }
+
+    #[test]
+    fn simple_units_bytes() {
+        assert_eq!(simple_units(100), "   100");
+    }
+
+    #[test]
+    fn simple_units_kbytes() {
+        assert_eq!(simple_units(1025), "    1K");
+    }
+
+    #[test]
+    fn simple_units_kbytes_long() {
+        assert_eq!(simple_units(1025000), " 1000K");
+    }
+
+    #[test]
+    fn simple_units_mbytes() {
+        assert_eq!(simple_units(2_200_000), "    2M");
+    }
 }
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+
+}
+
