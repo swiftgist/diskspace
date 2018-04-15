@@ -1,6 +1,6 @@
 
 mod ds;
-use ds::diskspace;
+// use ds::diskspace;
 // use ds::diskspace::traverse;
 // use ds::diskspace::report;
 
@@ -9,9 +9,9 @@ fn main() {
 
     directories.push("./".to_string());
 
-    let disk_space = diskspace::traverse(directories);
+    let disk_space = ds::traverse(directories);
 
-    diskspace::report(disk_space);
+    ds::report(disk_space);
 
 }
 
