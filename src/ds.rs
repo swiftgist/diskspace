@@ -42,26 +42,24 @@ fn process_path(path: fs::ReadDir,directories: &mut Vec<String>, disk_space: &mu
                 if entry.path().is_dir() {
                     directories.push(pathname);
                 } else {
-                    let metadata = entry.metadata();
-                    if let Ok(metadata) = metadata {
-                        disk_space.insert(pathname, metadata.st_size());
-                        let eparent = entry.path();
-                        let rparent = eparent.parent();
-                        if let Some(rparent) = rparent {
-                            let sparent = rparent.to_str();
-                            if let Some(sparent) = sparent {
-                                increment(sparent, &metadata, disk_space)
-                                //let parent = sparent.to_string();
-                                //let mut size: u64 = 0;
-                                //if disk_space.contains_key(&parent) {
-                                //    size = *disk_space.get(&parent).unwrap();
-                                //}
-                                //size += metadata.st_size();
-                                //disk_space.insert(parent, size);
-                            }
-                        }
-                    }
+                    process_file(entry, pathname, disk_space)
                 }
+            }
+        }
+    }
+
+}
+
+fn process_file(entry: fs::DirEntry, pathname: String, disk_space: &mut BTreeMap<String, u64>) {
+    let metadata = entry.metadata();
+    if let Ok(metadata) = metadata {
+        disk_space.insert(pathname, metadata.st_size());
+        let eparent = entry.path();
+        let rparent = eparent.parent();
+        if let Some(rparent) = rparent {
+            let sparent = rparent.to_str();
+            if let Some(sparent) = sparent {
+                increment(sparent, &metadata, disk_space)
             }
         }
     }
