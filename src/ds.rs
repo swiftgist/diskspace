@@ -13,15 +13,15 @@ pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
         let dir = directories.pop().unwrap();
         // println!("{:?}", dir);
         // let path = Path::new(&dir).read_dir();
-        let metadata = fs::symlink_metadata(&dir);
-        if let Ok(metadata) = metadata {
+        let result = fs::symlink_metadata(&dir);
+        if let Ok(metadata) = result {
             // println!("{} {:?}", &dir, metadata.file_type().is_symlink());
             if metadata.file_type().is_symlink() {
                 continue;
             }
         }
-        let path = fs::read_dir(&dir);
-        if let Ok(path) = path {
+        let result = fs::read_dir(&dir);
+        if let Ok(path) = result {
             process_path(path, &mut directories, &mut disk_space);
         } else {
             println!("Problem with  {}", dir);
@@ -33,8 +33,8 @@ pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
 
 fn process_path(path: fs::ReadDir,directories: &mut Vec<String>, disk_space: &mut BTreeMap<String, u64>) {
 
-    for entry in path {
-        if let Ok(entry) = entry {
+    for result in path {
+        if let Ok(entry) = result {
             let epathname = entry.path();
             let rpathname = epathname.to_str();
             if let Some(rpathname) = rpathname {
@@ -51,14 +51,14 @@ fn process_path(path: fs::ReadDir,directories: &mut Vec<String>, disk_space: &mu
 }
 
 fn process_file(entry: fs::DirEntry, pathname: String, disk_space: &mut BTreeMap<String, u64>) {
-    let metadata = entry.metadata();
-    if let Ok(metadata) = metadata {
+    let result = entry.metadata();
+    if let Ok(metadata) = result {
         disk_space.insert(pathname, metadata.st_size());
-        let eparent = entry.path();
-        let rparent = eparent.parent();
-        if let Some(rparent) = rparent {
-            let sparent = rparent.to_str();
-            if let Some(sparent) = sparent {
+        let entry_path = entry.path();
+        let option = entry_path.parent();
+        if let Some(rparent) = option {
+            let option = rparent.to_str();
+            if let Some(sparent) = option {
                 increment(sparent, &metadata, disk_space)
             }
         }
