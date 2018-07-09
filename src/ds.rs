@@ -1,8 +1,6 @@
 
-//pub mod diskspace {
 use std::iter::FromIterator;
 use std::collections::BTreeMap;
-//use std::path::Path;
 use std::fs;
 use std::os::linux::fs::MetadataExt;
 
@@ -11,11 +9,8 @@ pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
 
     while directories.len() != 0 {
         let dir = directories.pop().unwrap();
-        // println!("{:?}", dir);
-        // let path = Path::new(&dir).read_dir();
         let result = fs::symlink_metadata(&dir);
         if let Ok(metadata) = result {
-            // println!("{} {:?}", &dir, metadata.file_type().is_symlink());
             if metadata.file_type().is_symlink() {
                 continue;
             }
