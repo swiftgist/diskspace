@@ -1,0 +1,6 @@
+[package]
+name = "ds"
+version = "0.1.0"
+authors = ["Eric Jackson <swiftgist@gmail.com>"]
+
+[dependencies]
