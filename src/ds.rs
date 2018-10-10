@@ -38,7 +38,11 @@ pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
 ///
 /// Find all directories and files in a path.  Append directories to a vector
 /// and process each file
-fn process_path(path: fs::ReadDir,directories: &mut Vec<String>, disk_space: &mut BTreeMap<String, u64>) {
+fn process_path(
+    path: fs::ReadDir,
+    directories: &mut Vec<String>,
+    disk_space: &mut BTreeMap<String, u64>,
+) {
 
     for result in path {
         if let Ok(entry) = result {
@@ -118,12 +122,12 @@ pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>) {
 ///
 /// Divide successively by 1024 and append the correct suffix
 fn simple_units(number: u64) -> String {
-    let units = [ " ", "K", "M", "G", "T", "P" ];
+    let units = [" ", "K", "M", "G", "T", "P"];
     let mut index = 0;
     let mut n = number;
     while n > 1024 {
         index += 1;
-        n = n/1024;
+        n = n / 1024;
     }
     if index == 0 {
         format!("{:>6}", n)
@@ -163,7 +167,10 @@ mod tests {
 
         let mut out = Vec::new();
         report_stream(&mut out, data);
-        assert_eq!(out, "    2K path/to/fileA\n  1024 path/to/fileB\n".as_bytes())
+        assert_eq!(
+            out,
+            "    2K path/to/fileA\n  1024 path/to/fileB\n".as_bytes()
+        )
 
     }
 
@@ -194,7 +201,9 @@ mod tests {
 
         let mut out = Vec::new();
         report_stream(&mut out, data);
-        assert_eq!(out, "    2K path/to/fileA
+        assert_eq!(
+            out,
+            "    2K path/to/fileA
   1024 path/to/fileB
   1023 path/to/fileC
   1022 path/to/fileD
@@ -214,7 +223,9 @@ mod tests {
   1008 path/to/fileR
   1007 path/to/fileS
   1006 path/to/fileT
-".as_bytes())
+"
+                .as_bytes()
+        )
 
     }
 
@@ -239,4 +250,3 @@ mod tests {
     }
 
 }
-
