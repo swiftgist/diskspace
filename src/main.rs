@@ -11,4 +11,3 @@ fn main() {
     ds::report(disk_space);
 
 }
-
