@@ -1,4 +1,5 @@
 
+use clap::ArgMatches;
 use std::io;
 #[allow(unused_imports)] // method write_all is needed
 use std::io::Write;
@@ -27,7 +28,7 @@ pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
         if let Ok(path) = result {
             process_path(path, &mut directories, &mut disk_space);
         } else {
-            println!("Problem with  {}", dir);
+            println!("Cannot read directory {}", dir);
         }
     }
     disk_space
@@ -96,9 +97,9 @@ fn increment(sparent: &str, metadata: &fs::Metadata, disk_space: &mut BTreeMap<S
 /// Generate a text report
 ///
 /// Send report to stdout
-pub fn report(disk_space: BTreeMap<String, u64>) {
+pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
 
-    report_stream(&mut io::stdout(), disk_space)
+    report_stream(&mut io::stdout(), disk_space, matches)
 
 }
 
@@ -106,13 +107,27 @@ pub fn report(disk_space: BTreeMap<String, u64>) {
 ///
 /// Sort the entries by size and output the top 20
 #[allow(unused_must_use)]
-pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>) {
+pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
 
     let mut sorted = Vec::from_iter(disk_space);
-    sorted.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
+    let end;
+    if matches.occurrences_of("all") == 0 {
+        end = if sorted.len() < 20 { sorted.len() } else { 20 };
+    } else {
+        end = sorted.len();
+    }
 
-    let end = if sorted.len() < 20 { sorted.len() } else { 20 };
-    for &(ref filename, size) in &sorted[0..end] {
+    let section;
+    if matches.occurrences_of("reverse") == 0 {
+        sorted.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
+        section = &sorted[0..end];
+    } else {
+        sorted.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
+        section = &sorted[(sorted.len() - end)..];
+    }
+
+    // for &(ref filename, size) in &sorted[0..end] {
+    for &(ref filename, size) in section {
         writeln!(out, "{} {}", simple_units(size), filename);
     }
 
