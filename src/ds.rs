@@ -1,22 +1,25 @@
-
+#[cfg(test)]
+use clap::App;
 use clap::ArgMatches;
+use std::collections::BTreeMap;
+use std::fs;
+#[cfg(test)]
+use std::fs::File;
 use std::io;
 #[allow(unused_imports)] // method write_all is needed
 use std::io::Write;
 use std::iter::FromIterator;
-use std::collections::BTreeMap;
 use std::os::linux::fs::MetadataExt;
-use std::fs;
-#[cfg(test)]
-use std::fs::File;
-#[cfg(test)]
-use clap::App;
+use std::path::Path;
 
 /// Traverse
 ///
 /// Process each directory.  Skip symlinks.
-pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
+pub fn traverse(anchor: &String, matches: &ArgMatches) -> BTreeMap<String, u64> {
     let mut disk_space: BTreeMap<String, u64> = BTreeMap::new();
+    let mut directories: Vec<String> = Vec::new();
+
+    directories.push(anchor.to_string());
 
     while directories.len() != 0 {
         let dir = directories.pop().unwrap();
@@ -28,13 +31,12 @@ pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
         }
         let result = fs::read_dir(&dir);
         if let Ok(path) = result {
-            process_path(path, &mut directories, &mut disk_space);
+            process_path(anchor, path, &mut directories, &mut disk_space, &matches);
         } else {
             println!("Cannot read directory {}", dir);
         }
     }
     disk_space
-
 }
 
 /// Process Path
@@ -42,11 +44,12 @@ pub fn traverse(mut directories: Vec<String>) -> BTreeMap<String, u64> {
 /// Find all directories and files in a path.  Append directories to a vector
 /// and process each file
 fn process_path(
+    anchor: &String,
     path: fs::ReadDir,
     directories: &mut Vec<String>,
     disk_space: &mut BTreeMap<String, u64>,
+    matches: &ArgMatches,
 ) {
-
     for result in path {
         if let Ok(entry) = result {
             let epathname = entry.path();
@@ -56,18 +59,23 @@ fn process_path(
                 if entry.path().is_dir() {
                     directories.push(pathname);
                 } else {
-                    process_file(entry, pathname, disk_space)
+                    process_file(anchor, entry, pathname, disk_space, &matches)
                 }
             }
         }
     }
-
 }
 
 /// Processs file
 ///
 /// Add the file to the hash with its size and increment the parent by that size
-fn process_file(entry: fs::DirEntry, pathname: String, disk_space: &mut BTreeMap<String, u64>) {
+fn process_file(
+    top: &String,
+    entry: fs::DirEntry,
+    pathname: String,
+    disk_space: &mut BTreeMap<String, u64>,
+    matches: &ArgMatches,
+) {
     let result = entry.metadata();
     if let Ok(metadata) = result {
         disk_space.insert(pathname, metadata.st_size());
@@ -76,11 +84,20 @@ fn process_file(entry: fs::DirEntry, pathname: String, disk_space: &mut BTreeMap
         if let Some(rparent) = option {
             let option = rparent.to_str();
             if let Some(sparent) = option {
-                increment(sparent, &metadata, disk_space)
+                let path = Path::new(sparent);
+                if matches.occurrences_of("parent") > 0 {
+                    for ancestor in path.ancestors() {
+                        let ancestor_path = ancestor.to_str().unwrap();
+                        increment(ancestor_path, &metadata, disk_space);
+                        if top == ancestor_path {
+                            break;
+                        }
+                    }
+                }
+                increment(sparent, &metadata, disk_space);
             }
         }
     }
-
 }
 
 /// Add the file size to the parent entry
@@ -100,9 +117,7 @@ fn increment(sparent: &str, metadata: &fs::Metadata, disk_space: &mut BTreeMap<S
 ///
 /// Send report to stdout
 pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
-
     report_stream(&mut io::stdout(), disk_space, matches)
-
 }
 
 /// Generate a text report
@@ -110,7 +125,6 @@ pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
 /// Sort the entries by size and output the top 20
 #[allow(unused_must_use)]
 pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
-
     let mut sorted = Vec::from_iter(disk_space);
     let end;
     if matches.occurrences_of("all") == 0 {
@@ -132,7 +146,6 @@ pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, mat
     for &(ref filename, size) in section {
         writeln!(out, "{} {}", simple_units(size), filename);
     }
-
 }
 
 /// Convert number to human friendly format
@@ -175,7 +188,6 @@ mod tests {
         assert_eq!(data["path/to/file"], 12)
     }
 
-
     #[test]
     fn report_short() {
         let mut data = BTreeMap::new();
@@ -189,7 +201,6 @@ mod tests {
             out,
             "    2K path/to/fileA\n  1024 path/to/fileB\n".as_bytes()
         )
-
     }
 
     #[test]
@@ -242,10 +253,8 @@ mod tests {
   1008 path/to/fileR
   1007 path/to/fileS
   1006 path/to/fileT
-"
-                .as_bytes()
+".as_bytes()
         )
-
     }
 
     #[test]
