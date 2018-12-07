@@ -162,16 +162,13 @@ pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, mat
 /// Divide successively by 1024 and append the correct suffix
 fn simple_units(number: u64) -> String {
     let units = [" ", "K", "M", "G", "T", "P"];
-    let mut index = 0;
-    let mut n = number;
-    while n > 1024 {
-        index += 1;
-        n = n / 1024;
-    }
+    let index = (number as f64).log(1024.0).trunc() as u32;
+    let n = number / 1024u64.pow(index); 
+
     if index == 0 {
         format!("{:>6}", n)
     } else {
-        format!("{:>5}{}", n, units[index])
+        format!("{:>5}{}", n, units[index as usize])
     }
 }
 
@@ -208,7 +205,7 @@ mod tests {
         report_stream(&mut out, data, &matches);
         assert_eq!(
             out,
-            "    2K path/to/fileA\n  1024 path/to/fileB\n".as_bytes()
+            "    2K path/to/fileA\n    1K path/to/fileB\n".as_bytes()
         )
     }
 
@@ -243,7 +240,7 @@ mod tests {
         assert_eq!(
             out,
             "    2K path/to/fileA
-  1024 path/to/fileB
+    1K path/to/fileB
   1023 path/to/fileC
   1022 path/to/fileD
   1021 path/to/fileE
