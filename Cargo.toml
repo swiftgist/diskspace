@@ -5,3 +5,4 @@ authors = ["Eric Jackson <swiftgist@gmail.com>"]
 
 [dependencies]
 clap = "2"
+rayon = "1.0.3"

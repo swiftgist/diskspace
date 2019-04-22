@@ -1,3 +1,7 @@
+// extern crate rayon;
+// use ds::rayon::prelude::*;
+// use std::thread;
+
 #[cfg(test)]
 use clap::App;
 use clap::ArgMatches;
@@ -11,6 +15,144 @@ use std::io::Write;
 use std::iter::FromIterator;
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
+use std::path::PathBuf;
+
+
+struct DiskSpace {
+    disk_space: BTreeMap<String, u64>
+}
+
+impl DiskSpace {
+    // fn update(&mut self, anchor: &String, file: PathBuf, file_size: u64,  matches: &ArgMatches)
+    fn update(&mut self, anchor: &String, file: PathBuf, file_size: u64)
+    {
+        for ancestor in file.ancestors() {
+            let ancestor_path = ancestor.to_string_lossy().to_string();
+            let mut size: u64 = 0;
+            if self.disk_space.contains_key(&ancestor_path) {
+                size = *self.disk_space.get(&ancestor_path).unwrap();
+            }
+            size += file_size;
+            self.disk_space.insert(ancestor_path.to_owned(), size);
+            if anchor == &ancestor_path {
+                break;
+            }
+            // if ancestor != file && matches.occurrences_of("parent") == 0 {
+            //     break;
+            // }
+        }
+    }
+
+    fn visit(&mut self, dir: &String, paths: &Vec<PathBuf>) -> Vec<PathBuf>
+    {
+        let mut pathnames = paths.to_vec();
+        let dir_path = PathBuf::from(dir);
+
+        if dir_path.is_dir() {
+            for entry in fs::read_dir(dir_path).unwrap() {
+                let entry = entry.unwrap();
+                let path = entry.path();
+
+                if fs::symlink_metadata(&path).unwrap().file_type().is_symlink() {
+                    continue;
+                }
+
+                if path.is_dir() {
+                    // pathnames.push(path.to_owned());
+                    // pathnames.extend(self.visit(&path.to_string_lossy().to_string(), &paths));
+                    self.visit(&path.to_string_lossy().to_string(), &paths);
+                } else {
+                    // pathnames.push(path.to_owned());
+                    self.update(dir, path.to_owned(), path.metadata().unwrap().st_size());
+                }
+            }
+        }
+        pathnames
+    }
+}
+
+pub fn explore(anchor: &String, matches: &ArgMatches) -> BTreeMap<String, u64>
+{
+    let mut ds = DiskSpace{ disk_space: BTreeMap::new() };
+
+    let files = ds.visit(anchor, &Vec::<PathBuf>::new());
+
+    ds.disk_space
+}
+
+
+/// Second implementation
+/// Attempted to simplify the number of functions using recursion.  However,
+/// the double pass of building and then processing each file takes nearly
+/// twice the time as the original implementation.
+
+/// Discover
+/// Gather all filenames and process each
+pub fn discover(anchor: &String, matches: &ArgMatches) -> BTreeMap<String, u64>
+{
+    let mut disk_space: BTreeMap<String, u64> = BTreeMap::new();
+
+    let files = visit_dirs(PathBuf::from(anchor), &Vec::<PathBuf>::new());
+
+    for file in files {
+        update_disk_space(anchor, file.to_path_buf(), file.metadata().unwrap().st_size(), &mut disk_space, matches)
+    };
+
+    disk_space
+}
+
+/// Visit_dirs
+/// Recursive function to walk a directory, skipping symlinks
+pub fn visit_dirs(dir: PathBuf, paths: &Vec<PathBuf>) -> Vec<PathBuf>
+{
+
+    let mut pathnames = paths.to_vec();
+
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+
+            if fs::symlink_metadata(&path).unwrap().file_type().is_symlink() {
+                continue;
+            }
+            if path.is_dir() {
+                pathnames.push(path.to_owned());
+                pathnames.extend(visit_dirs(path, &paths));
+            } else {
+                pathnames.push(path);
+            }
+        }
+    }
+    pathnames
+}
+
+/// Update_disk_space
+/// Process file by adding size to its entry and each ancestor
+pub fn update_disk_space(anchor: &String, file: PathBuf, file_size: u64, disk_space: &mut BTreeMap<String, u64>, matches: &ArgMatches)
+{
+    for ancestor in file.ancestors() {
+        let ancestor_path = ancestor.to_string_lossy().to_string();
+        let mut size: u64 = 0;
+        if disk_space.contains_key(&ancestor_path) {
+            size = *disk_space.get(&ancestor_path).unwrap();
+        }
+        size += file_size;
+        disk_space.insert(ancestor_path.to_owned(), size);
+        if anchor == &ancestor_path {
+            break;
+        }
+        if ancestor != file && matches.occurrences_of("parent") == 0 {
+            break;
+        }
+    }
+}
+
+/// Original implementation
+/// The goal was to gain an understanding of Rust's Result and Option types
+/// while learning some filesystem operations and structures.  While the
+/// code works, the multiple functions are involved.
+///
 
 /// Traverse
 ///
@@ -79,8 +221,9 @@ fn process_file(
                         let path = Path::new(parent_pathname);
                         if matches.occurrences_of("parent") > 0 {
                             update_ancestors(top, path, &metadata, disk_space);
+                        } else {
+                            increment(parent_pathname, &metadata, disk_space);
                         }
-                        increment(parent_pathname, &metadata, disk_space);
                     }
                     None => (),
                 },
@@ -163,7 +306,7 @@ pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, mat
 fn simple_units(number: u64) -> String {
     let units = [" ", "K", "M", "G", "T", "P"];
     let index = (number as f64).log(1024.0).trunc() as u32;
-    let n = number / 1024u64.pow(index); 
+    let n = number / 1024u64.pow(index);
 
     if index == 0 {
         format!("{:>6}", n)

@@ -22,6 +22,18 @@ fn main() {
                 .short("r")
                 .long("reverse")
                 .help("display entries descending"),
+        ).arg(
+            Arg::with_name("first")
+                .short("1")
+                .help("original implementation"),
+        ).arg(
+            Arg::with_name("second")
+                .short("2")
+                .help("second implementation"),
+        ).arg(
+            Arg::with_name("third")
+                .short("3")
+                .help("third implementation"),
         ).arg(Arg::with_name("directory").index(1).help("start location"))
         .get_matches();
 
@@ -30,7 +42,19 @@ fn main() {
         None => "./".to_string(),
     };
 
-    let disk_space = ds::traverse(&anchor, &matches);
+    if matches.is_present("third") {
+        let disk_space = ds::explore(&anchor, &matches);
+        ds::report(disk_space, &matches);
+    } else if matches.is_present("second") {
+        let disk_space = ds::discover(&anchor, &matches);
+        ds::report(disk_space, &matches);
+    } else if matches.is_present("first") {
+        let disk_space = ds::traverse(&anchor, &matches);
+        ds::report(disk_space, &matches);
+    } else {
+        // fastest
+        let disk_space = ds::traverse(&anchor, &matches);
+        ds::report(disk_space, &matches);
+    }
 
-    ds::report(disk_space, &matches);
 }
