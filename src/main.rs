@@ -1,6 +1,10 @@
 extern crate clap;
 use clap::{App, Arg};
 mod ds;
+mod ds2;
+mod ds3;
+mod ds4;
+mod report;
 
 fn main() {
     let matches = App::new("DiskSpace")
@@ -34,6 +38,10 @@ fn main() {
             Arg::with_name("third")
                 .short("3")
                 .help("third implementation"),
+        ).arg(
+            Arg::with_name("fourth")
+                .short("4")
+                .help("fourth implementation"),
         ).arg(Arg::with_name("directory").index(1).help("start location"))
         .get_matches();
 
@@ -43,18 +51,17 @@ fn main() {
     };
 
     if matches.is_present("third") {
-        let disk_space = ds::explore(&anchor, &matches);
-        ds::report(disk_space, &matches);
+        let disk_space = ds3::traverse(&anchor, &matches);
+        report::report(disk_space, &matches);
     } else if matches.is_present("second") {
-        let disk_space = ds::discover(&anchor, &matches);
-        ds::report(disk_space, &matches);
+        let disk_space = ds2::traverse(&anchor, &matches);
+        report::report(disk_space, &matches);
     } else if matches.is_present("first") {
         let disk_space = ds::traverse(&anchor, &matches);
-        ds::report(disk_space, &matches);
+        report::report(disk_space, &matches);
     } else {
         // fastest
-        let disk_space = ds::traverse(&anchor, &matches);
-        ds::report(disk_space, &matches);
+        let disk_space = ds4::traverse(&anchor, &matches);
+        report::report(disk_space, &matches);
     }
-
 }
