@@ -5,3 +5,18 @@ authors = ["Eric Jackson <swiftgist@gmail.com>"]
 
 [dependencies]
 clap = "2"
+rayon = "1.0.3"
+tempdir = "0.3.7"
+
+[features]
+multiple = []
+
+[[bin]]
+doctest = false
+name = "ds"
+path = "src/main.rs"
+
+[lib]
+doctest = false
+name = "ds"
+path = "src/lib.rs"
