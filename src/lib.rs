@@ -1,4 +1,5 @@
 extern crate clap;
+#[cfg(test)]
 use clap::{App, Arg};
 mod ds;
 #[cfg(feature = "multiple")]

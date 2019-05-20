@@ -1,14 +1,14 @@
-extern crate tempdir;
-extern crate ds;
 extern crate clap;
+extern crate ds;
+extern crate tempdir;
 use clap::App;
 use ds::traverse;
-use tempdir::TempDir;
 use std::collections::BTreeMap;
-use std::process::Command;
 use std::fs;
-use std::os::unix;
 use std::io::Write;
+use std::os::unix;
+use std::process::Command;
+use tempdir::TempDir;
 
 #[cfg(test)]
 fn setup() {}
@@ -59,7 +59,7 @@ fn sample_directories() {
 
     let pathname = tmp_dir.path().join("a/b/c/d");
     fs::create_dir_all(&pathname).unwrap();
-    
+
     let subdirs = vec!["a", "a/b", "a/b/c", "a/b/c/d"];
     for subdir in subdirs {
         for i in 1..6 {
@@ -72,10 +72,16 @@ fn sample_directories() {
             writeln!(tmpfile, "{}", contents).unwrap();
         }
     }
-    let _ = unix::fs::symlink(tmp_dir.path().join("sample1"), tmp_dir.path().join("skipped.txt"));
+    let _ = unix::fs::symlink(
+        tmp_dir.path().join("sample1"),
+        tmp_dir.path().join("skipped.txt"),
+    );
 
     let matches = App::new("DSintegration").get_matches();
-    let disk_space = traverse(&tmp_dir.path().to_string_lossy().to_string(), &matches);
+    let disk_space = traverse(
+        &vec![tmp_dir.path().to_string_lossy().to_string()],
+        &matches,
+    );
 
     tmp_dir.close().unwrap();
     assert_eq!(disk_space, expected);
