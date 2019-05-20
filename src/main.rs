@@ -29,12 +29,12 @@ fn main() {
                 .short("r")
                 .long("reverse")
                 .help("display entries descending"),
-        ).arg(Arg::with_name("directory").index(1).help("start location"))
+        ).arg(Arg::with_name("directory").min_values(0).help("start location"))
         .get_matches();
 
-    let anchor = match matches.value_of("directory") {
-        Some(start) => start.to_string(),
-        None => "./".to_string(),
+    let anchor: Vec<_> = match matches.values_of("directory") {
+        Some(start) => start.map(|x| x.to_string()).collect(),
+        None => vec![ "./".to_string() ],
     };
 
     let disk_space = ds::traverse(&anchor, &matches);
