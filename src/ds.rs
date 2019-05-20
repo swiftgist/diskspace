@@ -10,22 +10,22 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 pub enum DSError {
-    IO,
+    IO(io::Error),
     Mutex,
 }
 
 impl fmt::Display for DSError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            DSError::IO => write!(f, "Input/Output"),
-            DSError::Mutex => write!(f, "Mutex failed"),
+        match &*self {
+            DSError::IO(err) => write!(f, "{}", err),
+            DSError::Mutex => write!(f, "Mutex poisoned"),
         }
     }
 }
 
 impl From<io::Error> for DSError {
-    fn from(_: io::Error) -> DSError {
-        DSError::IO
+    fn from(err: io::Error) -> DSError {
+        DSError::IO(err)
     }
 }
 
