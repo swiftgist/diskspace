@@ -21,7 +21,7 @@ fn simple() {
         .expect("failed to execute ds");
 
     assert!(output.status.success());
-    assert!(String::from_utf8_lossy(&output.stdout).contains("M ./target/debug/ds",));
+    assert!(String::from_utf8_lossy(&output.stdout).contains(" ./target/debug",));
 }
 
 #[test]

@@ -1,6 +1,8 @@
 #[cfg(test)]
 use clap::App;
 use clap::ArgMatches;
+extern crate colored;
+use self::colored::*;
 use std::collections::BTreeMap;
 use std::io;
 #[allow(unused_imports)] // method write_all is needed
@@ -20,25 +22,22 @@ pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
 #[allow(unused_must_use)]
 pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
     let mut sorted = Vec::from_iter(disk_space);
-    let end;
-    if matches.occurrences_of("all") == 0 {
-        end = if sorted.len() < 20 { sorted.len() } else { 20 };
+    let end = if matches.occurrences_of("all") == 0 && sorted.len() > 20 {
+        20
     } else {
-        end = sorted.len();
-    }
+        sorted.len()
+    };
 
-    let section;
-    if matches.occurrences_of("reverse") == 0 {
+    let section = if matches.occurrences_of("reverse") == 0 {
         sorted.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
-        section = &sorted[0..end];
+        &sorted[0..end]
     } else {
         sorted.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
-        section = &sorted[(sorted.len() - end)..];
-    }
+        &sorted[(sorted.len() - end)..]
+    };
 
-    // for &(ref filename, size) in &sorted[0..end] {
     for &(ref filename, size) in section {
-        writeln!(out, "{} {}", simple_units(size), filename);
+        writeln!(out, "{} {}", simple_units(size).bold(), filename);
     }
 }
 
@@ -47,13 +46,13 @@ pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, mat
 /// Divide successively by 1024 and append the correct suffix
 fn simple_units(number: u64) -> String {
     let units = [" ", "K", "M", "G", "T", "P"];
-    let index = (number as f64).log(1024.0).trunc() as u32;
-    let n = number / 1024u64.pow(index);
+    let index: usize = (number as f64).log(1024.0).trunc() as usize;
+    let n = number / 1024u64.pow(index as u32);
 
-    if index == 0 {
+    if index == 0 || index > 5 {
         format!("{:>6}", n)
     } else {
-        format!("{:>5}{}", n, units[index as usize])
+        format!("{:>5}{}", n, units[index])
     }
 }
 
@@ -73,7 +72,12 @@ mod tests {
         report_stream(&mut out, data, &matches);
         assert_eq!(
             out,
-            "    2K path/to/fileA\n    1K path/to/fileB\n".as_bytes()
+            format!(
+                "{} path/to/fileA\n{} path/to/fileB\n",
+                "    2K".bold(),
+                "    1K".bold()
+            )
+            .as_bytes()
         )
     }
 
@@ -107,27 +111,50 @@ mod tests {
         report_stream(&mut out, data, &matches);
         assert_eq!(
             out,
-            "    2K path/to/fileA
-    1K path/to/fileB
-  1023 path/to/fileC
-  1022 path/to/fileD
-  1021 path/to/fileE
-  1020 path/to/fileF
-  1019 path/to/fileG
-  1018 path/to/fileH
-  1017 path/to/fileI
-  1016 path/to/fileJ
-  1015 path/to/fileK
-  1014 path/to/fileL
-  1013 path/to/fileM
-  1012 path/to/fileN
-  1011 path/to/fileO
-  1010 path/to/fileP
-  1009 path/to/fileQ
-  1008 path/to/fileR
-  1007 path/to/fileS
-  1006 path/to/fileT
-".as_bytes()
+            format!(
+                "{} path/to/fileA
+{} path/to/fileB
+{} path/to/fileC
+{} path/to/fileD
+{} path/to/fileE
+{} path/to/fileF
+{} path/to/fileG
+{} path/to/fileH
+{} path/to/fileI
+{} path/to/fileJ
+{} path/to/fileK
+{} path/to/fileL
+{} path/to/fileM
+{} path/to/fileN
+{} path/to/fileO
+{} path/to/fileP
+{} path/to/fileQ
+{} path/to/fileR
+{} path/to/fileS
+{} path/to/fileT
+",
+                "    2K".bold(),
+                "    1K".bold(),
+                "  1023".bold(),
+                "  1022".bold(),
+                "  1021".bold(),
+                "  1020".bold(),
+                "  1019".bold(),
+                "  1018".bold(),
+                "  1017".bold(),
+                "  1016".bold(),
+                "  1015".bold(),
+                "  1014".bold(),
+                "  1013".bold(),
+                "  1012".bold(),
+                "  1011".bold(),
+                "  1010".bold(),
+                "  1009".bold(),
+                "  1008".bold(),
+                "  1007".bold(),
+                "  1006".bold()
+            )
+            .as_bytes()
         )
     }
 
