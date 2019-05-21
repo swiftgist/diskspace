@@ -3,7 +3,10 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::fs;
 use std::io;
+#[cfg(target_os = "linux")]
 use std::os::linux::fs::MetadataExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process;
 use std::sync;
@@ -80,7 +83,10 @@ pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) -> Resul
 }
 
 fn increment(anchor: PathBuf, mds: &Mutex<BTreeMap<String, u64>>, path: PathBuf) -> Result<(), DSError> {
+#[cfg(target_os = "linux")]
     let filesize = path.metadata()?.st_size();
+#[cfg(target_os = "windows")]
+    let filesize = path.metadata()?.file_size();
     for ancestor in path.ancestors() {
         let ancestor_path = ancestor.to_string_lossy().to_string();
         *mds.lock()?.entry(ancestor_path).or_insert(0) += filesize;
