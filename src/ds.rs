@@ -61,16 +61,22 @@ pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) -> Resul
         let contents = match fs::read_dir(&dir) {
             Ok(contents) => contents,
             Err(err) => {
-                eprintln!("{} {}", err, dir.to_string_lossy().to_string());
+                eprintln!("{} {}", dir.to_string_lossy().to_string(), err);
                 return Ok(());
             }
         };
         for entry in contents {
-            let entry = entry?;
+            let entry = entry.unwrap();
             let path = entry.path();
 
-            if fs::symlink_metadata(&path)?.file_type().is_symlink() {
-                continue;
+            match fs::symlink_metadata(&path) {
+                Ok(metadata) => if metadata.file_type().is_symlink() {
+                    continue;
+                }
+                Err(err) => {
+                    eprintln!("{} {}", path.to_string_lossy().to_string(), err);
+                    continue;
+                }
             }
             if path.is_dir() {
                 visit_dirs(path.to_owned(), mds)?;
@@ -86,7 +92,13 @@ fn increment(anchor: PathBuf, mds: &Mutex<BTreeMap<String, u64>>, path: PathBuf)
 #[cfg(target_os = "linux")]
     let filesize = path.metadata()?.st_size();
 #[cfg(target_os = "windows")]
-    let filesize = path.metadata()?.file_size();
+    let filesize = match path.metadata() {
+        Ok(metadata) => metadata.file_size(),
+        Err(err) => {
+            eprintln!("{} {}", path.to_string_lossy().to_string(), err);
+            0
+        }
+    };
     for ancestor in path.ancestors() {
         let ancestor_path = ancestor.to_string_lossy().to_string();
         *mds.lock()?.entry(ancestor_path).or_insert(0) += filesize;
