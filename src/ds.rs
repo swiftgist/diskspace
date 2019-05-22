@@ -38,11 +38,39 @@ impl<T> From<sync::PoisonError<T>> for DSError {
     }
 }
 
-pub fn traverse(anchors: &Vec<String>, _matches: &ArgMatches) -> BTreeMap<String, u64> {
+pub struct VerboseErrors {
+    pub verbose: bool,
+    once: bool,
+}
+
+impl VerboseErrors {
+    pub fn new() -> VerboseErrors {
+        VerboseErrors {
+            verbose: false,
+            once: true,
+        }
+    }
+
+    pub fn display(&mut self, path: &PathBuf, err: io::Error) {
+        if self.verbose {
+            eprintln!("{} {}", path.to_string_lossy().to_string(), err);
+        } else {
+            if self.once {
+                eprintln!("Use -v to see skipped files");
+                self.once = false;
+            }
+        }
+    }
+}
+
+pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String, u64> {
     let mut mds = Mutex::new(BTreeMap::new());
+    let mut ve = VerboseErrors::new();
+
+    ve.verbose = matches.occurrences_of("verbose") > 0;
 
     for dir in anchors {
-        match visit_dirs(PathBuf::from(dir), &mut mds) {
+        match visit_dirs(PathBuf::from(dir), &mut mds, &mut ve) {
             Err(err) => {
                 eprintln!("Error: {}", err);
                 process::exit(1);
@@ -55,13 +83,14 @@ pub fn traverse(anchors: &Vec<String>, _matches: &ArgMatches) -> BTreeMap<String
     disk_space
 }
 
-pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) -> Result<(), DSError> {
+pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>, ve: &mut VerboseErrors) -> Result<(), DSError> {
     if dir.is_dir() {
         let anchor = dir.to_owned();
         let contents = match fs::read_dir(&dir) {
             Ok(contents) => contents,
             Err(err) => {
-                eprintln!("{} {}", dir.to_string_lossy().to_string(), err);
+                ve.display(&dir, err);
+                // eprintln!("{} {}", dir.to_string_lossy().to_string(), err);
                 return Ok(());
             }
         };
@@ -69,33 +98,40 @@ pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) -> Resul
             let entry = entry.unwrap();
             let path = entry.path();
 
-            match fs::symlink_metadata(&path) {
-                Ok(metadata) => if metadata.file_type().is_symlink() {
-                    continue;
-                }
-                Err(err) => {
-                    eprintln!("{} {}", path.to_string_lossy().to_string(), err);
-                    continue;
-                }
-            }
+            if symlink_or_error(&path, ve) { continue; }
             if path.is_dir() {
-                visit_dirs(path.to_owned(), mds)?;
+                visit_dirs(path.to_owned(), mds, ve)?;
             } else {
-                increment(anchor.to_owned(), &mds, path)?;
+                increment(anchor.to_owned(), &mds, path, ve)?;
             }
         }
     }
     Ok(())
 }
 
-fn increment(anchor: PathBuf, mds: &Mutex<BTreeMap<String, u64>>, path: PathBuf) -> Result<(), DSError> {
-#[cfg(target_os = "linux")]
-    let filesize = path.metadata()?.st_size();
-#[cfg(target_os = "windows")]
+fn symlink_or_error(path: &PathBuf, ve: &mut VerboseErrors) -> bool {
+    match fs::symlink_metadata(&path) {
+        Ok(metadata) => if metadata.file_type().is_symlink() {
+            return true;
+        }
+        Err(err) => {
+            ve.display(path, err);
+            // eprintln!("{} {}", path.to_string_lossy().to_string(), err);
+            return true;
+        }
+    }
+    false
+}
+
+fn increment(anchor: PathBuf, mds: &Mutex<BTreeMap<String, u64>>, path: PathBuf, ve: &mut VerboseErrors) -> Result<(), DSError> {
     let filesize = match path.metadata() {
+#[cfg(target_os = "linux")]
+        Ok(metadata) => metadata.st_size(),
+#[cfg(target_os = "windows")]
         Ok(metadata) => metadata.file_size(),
         Err(err) => {
-            eprintln!("{} {}", path.to_string_lossy().to_string(), err);
+            ve.display(&path, err);
+            // eprintln!("{} {}", path.to_string_lossy().to_string(), err);
             0
         }
     };
