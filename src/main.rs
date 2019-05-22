@@ -25,6 +25,11 @@ fn main() {
                 .long("all")
                 .help("display all entries"),
         ).arg(
+            Arg::with_name("verbose")
+                .short("v")
+                .long("verbose")
+                .help("display skipped entries"),
+        ).arg(
             Arg::with_name("reverse")
                 .short("r")
                 .long("reverse")
