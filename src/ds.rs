@@ -12,6 +12,12 @@ use std::process;
 use std::sync;
 use std::sync::Mutex;
 
+/// Current implementation
+/// Expand upon the basic solution from ds4.rs.  Include proper error
+/// handling and replace unwrap() with ? where possible.  Increase
+/// functionality with additional command line options and windows
+/// support.
+
 pub enum DSError {
     IO(io::Error),
     Mutex,
@@ -38,6 +44,10 @@ impl<T> From<sync::PoisonError<T>> for DSError {
     }
 }
 
+/// VerboseErrors
+///
+/// Two flags to track whether files with errors should be printed or
+/// an informational message to the user.
 pub struct VerboseErrors {
     pub verbose: bool,
     once: bool,
@@ -63,6 +73,10 @@ impl VerboseErrors {
     }
 }
 
+/// Traverse
+///
+/// Creates a Mutex of a BTreeMap and a VerboseErrors.  Supports scanning
+/// multiple directories.
 pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String, u64> {
     let mut mds = Mutex::new(BTreeMap::new());
     let mut ve = VerboseErrors::new();
@@ -83,14 +97,21 @@ pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String,
     disk_space
 }
 
-pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>, ve: &mut VerboseErrors) -> Result<(), DSError> {
+/// Visit_Dirs
+///
+/// Recursively searches a directory and returns Result<>. Ignores
+/// directories with errors and symlinks.
+pub fn visit_dirs(
+    dir: PathBuf,
+    mds: &mut Mutex<BTreeMap<String, u64>>,
+    ve: &mut VerboseErrors,
+) -> Result<(), DSError> {
     if dir.is_dir() {
         let anchor = dir.to_owned();
         let contents = match fs::read_dir(&dir) {
             Ok(contents) => contents,
             Err(err) => {
                 ve.display(&dir, err);
-                // eprintln!("{} {}", dir.to_string_lossy().to_string(), err);
                 return Ok(());
             }
         };
@@ -98,7 +119,9 @@ pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>, ve: &mut
             let entry = entry.unwrap();
             let path = entry.path();
 
-            if symlink_or_error(&path, ve) { continue; }
+            if symlink_or_error(&path, ve) {
+                continue;
+            }
             if path.is_dir() {
                 visit_dirs(path.to_owned(), mds, ve)?;
             } else {
@@ -109,29 +132,42 @@ pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>, ve: &mut
     Ok(())
 }
 
+/// Symlink_or_Error
+///
+/// Check if a path is a symlink.  Returns true if path is a symlink
+/// or if the metadata results in an error.
 fn symlink_or_error(path: &PathBuf, ve: &mut VerboseErrors) -> bool {
     match fs::symlink_metadata(&path) {
-        Ok(metadata) => if metadata.file_type().is_symlink() {
-            return true;
+        Ok(metadata) => {
+            if metadata.file_type().is_symlink() {
+                return true;
+            }
         }
         Err(err) => {
             ve.display(path, err);
-            // eprintln!("{} {}", path.to_string_lossy().to_string(), err);
             return true;
         }
     }
     false
 }
 
-fn increment(anchor: PathBuf, mds: &Mutex<BTreeMap<String, u64>>, path: PathBuf, ve: &mut VerboseErrors) -> Result<(), DSError> {
+/// Increment
+///
+/// Finds filesize for Linux and Windows.  Effectively skips files with
+/// errors.  Increment the size of the path and all ancestors.
+fn increment(
+    anchor: PathBuf,
+    mds: &Mutex<BTreeMap<String, u64>>,
+    path: PathBuf,
+    ve: &mut VerboseErrors,
+) -> Result<(), DSError> {
     let filesize = match path.metadata() {
-#[cfg(target_os = "linux")]
+        #[cfg(target_os = "linux")]
         Ok(metadata) => metadata.st_size(),
-#[cfg(target_os = "windows")]
+        #[cfg(target_os = "windows")]
         Ok(metadata) => metadata.file_size(),
         Err(err) => {
             ve.display(&path, err);
-            // eprintln!("{} {}", path.to_string_lossy().to_string(), err);
             0
         }
     };

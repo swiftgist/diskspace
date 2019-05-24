@@ -6,6 +6,22 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::thread;
 
+/// Fifth implementation
+/// I had the suspicion that parallel processing some parts of the
+/// directory trees might help.  However, implementing threads in a
+/// recursive function caused a bit of anguish.  I settled for only
+/// creating a thread for directories of a certain st_size or greater.
+/// In other words, keep directories with a few hundred files or less in
+/// the main thread.
+///
+/// I abandoned this solution since experimenting saved one second on a
+/// 200G home directory.  Additionally, this version can hit the number of
+/// open files limit if the number of threads goes too high.
+
+/// Traverse
+///
+/// Creates a Mutex of a BTreeMap.  Locks and unwraps the result after
+/// visiting all the files.
 pub fn traverse(anchor: &String, _matches: &ArgMatches) -> BTreeMap<String, u64> {
     let mut mds = Mutex::new(BTreeMap::new());
 
@@ -15,6 +31,10 @@ pub fn traverse(anchor: &String, _matches: &ArgMatches) -> BTreeMap<String, u64>
     disk_space
 }
 
+/// Visit_dirs
+///
+/// Recursive solution returning ().  Spawn threads for the largest
+/// directories.
 pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) {
     if dir.is_dir() {
         let mut children = vec![];
@@ -31,7 +51,7 @@ pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) {
                 continue;
             }
             if path.is_dir() {
-                if path.metadata().unwrap().st_size() >  500 {
+                if path.metadata().unwrap().st_size() > 500 {
                     let mut child_mds = Mutex::new(BTreeMap::new());
                     &children.push(thread::spawn(move || {
                         visit_dirs(path.to_owned(), &mut child_mds);

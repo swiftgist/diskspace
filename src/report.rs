@@ -3,21 +3,21 @@ use clap::App;
 use clap::ArgMatches;
 extern crate colored;
 use self::colored::*;
-use std::env;
 use std::collections::BTreeMap;
+use std::env;
 use std::io;
 #[allow(unused_imports)] // method write_all is needed
 use std::io::Write;
 use std::iter::FromIterator;
 
-/// Generate a text report
+/// Report
 ///
 /// Send report to stdout
 pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
     report_stream(&mut io::stdout(), disk_space, matches)
 }
 
-/// Generate a text report
+/// Report_Stream
 ///
 /// Sort the entries by size and output the top 20
 #[allow(unused_must_use)]
@@ -42,34 +42,36 @@ pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, mat
     }
 }
 
+/// Color
+///
+/// Returns a string that will contain colored unit output if the
+/// TERM environment variable is set.  Defaults to yellow on Linux and
+/// cyan on Windows(cygwin).  Color preference specified as a command
+/// line option.
 fn color(number: u64, matches: &ArgMatches) -> String {
     match env::var_os("TERM") {
         None => simple_units(number),
-        Some(term) => {
-            match term.as_os_str().to_str().unwrap() {
-                "cygwin" => simple_units(number).cyan().bold().to_string(),
-                _ => {
-                    match matches.value_of("color") {
-                        Some("black") => simple_units(number).black().bold().to_string(),
-                        Some("red") => simple_units(number).red().bold().to_string(),
-                        Some("green") => simple_units(number).green().bold().to_string(),
-                        Some("yellow") => simple_units(number).yellow().bold().to_string(),
-                        Some("blue") => simple_units(number).blue().bold().to_string(),
-                        Some("magenta") => simple_units(number).magenta().bold().to_string(),
-                        Some("cyan") => simple_units(number).cyan().bold().to_string(),
-                        Some("white") => simple_units(number).white().bold().to_string(),
-                        Some("none") => simple_units(number),
-                        _ => simple_units(number).yellow().bold().to_string(),
-                    }
-                }
-            }
-        }
+        Some(term) => match term.as_os_str().to_str().unwrap() {
+            "cygwin" => simple_units(number).cyan().bold().to_string(),
+            _ => match matches.value_of("color") {
+                Some("black") => simple_units(number).black().bold().to_string(),
+                Some("red") => simple_units(number).red().bold().to_string(),
+                Some("green") => simple_units(number).green().bold().to_string(),
+                Some("yellow") => simple_units(number).yellow().bold().to_string(),
+                Some("blue") => simple_units(number).blue().bold().to_string(),
+                Some("magenta") => simple_units(number).magenta().bold().to_string(),
+                Some("cyan") => simple_units(number).cyan().bold().to_string(),
+                Some("white") => simple_units(number).white().bold().to_string(),
+                Some("none") => simple_units(number),
+                _ => simple_units(number).yellow().bold().to_string(),
+            },
+        },
     }
 }
 
-/// Convert number to human friendly format
+/// Simple_Units
 ///
-/// Divide successively by 1024 and append the correct suffix
+/// Convert number to human friendly format
 fn simple_units(number: u64) -> String {
     let units = [" ", "K", "M", "G", "T", "P"];
     let index: usize = (number as f64).log(1024.0).trunc() as usize;

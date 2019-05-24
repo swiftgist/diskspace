@@ -1,3 +1,4 @@
+/// lib.rs is present for integration testing
 extern crate clap;
 #[cfg(test)]
 use clap::{App, Arg};

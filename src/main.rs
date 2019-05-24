@@ -24,37 +24,44 @@ fn main() {
                 .short("a")
                 .long("all")
                 .help("display all entries"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("color")
                 .short("c")
                 .long("color")
                 .value_name("COLOR")
                 .help("set to black, red, green, yellow, blue, magenta, cyan, white or none")
                 .takes_value(true),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("verbose")
                 .short("v")
                 .long("verbose")
                 .help("display skipped entries"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("reverse")
                 .short("r")
                 .long("reverse")
                 .help("display entries descending"),
-        ).arg(Arg::with_name("directory").min_values(0).help("start location"))
+        )
+        .arg(
+            Arg::with_name("directory")
+                .min_values(0)
+                .help("start location"),
+        )
         .get_matches();
 
     let anchor: Vec<_> = match matches.values_of("directory") {
         Some(start) => start.map(|x| x.to_string()).collect(),
-        None => vec![ "./".to_string() ],
+        None => vec!["./".to_string()],
     };
 
     let disk_space = ds::traverse(&anchor, &matches);
     report::report(disk_space, &matches);
 }
 
-
-// Build with "cargo build --features multiple" if you wish to 
+// Build with "cargo build --features multiple" if you wish to
 // experiment with the different implementations
 #[cfg(feature = "multiple")]
 fn main() {
@@ -67,37 +74,45 @@ fn main() {
                 .short("a")
                 .long("all")
                 .help("display all entries"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("parent")
                 .short("p")
                 .long("parent")
                 .help("include all parent directories"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("reverse")
                 .short("r")
                 .long("reverse")
                 .help("display entries descending"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("first")
                 .short("1")
                 .help("original implementation"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("second")
                 .short("2")
                 .help("second implementation"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("third")
                 .short("3")
                 .help("third implementation"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("fourth")
                 .short("4")
                 .help("fourth implementation"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("fifth")
                 .short("5")
                 .help("fifth implementation"),
-        ).arg(Arg::with_name("directory").index(1).help("start location"))
+        )
+        .arg(Arg::with_name("directory").index(1).help("start location"))
         .get_matches();
 
     let anchor = match matches.value_of("directory") {
