@@ -87,6 +87,7 @@ fn simple_units(number: u64) -> String {
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn report_short() {
         let mut data = BTreeMap::new();
@@ -107,6 +108,7 @@ mod tests {
         )
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn report_long() {
         let mut data = BTreeMap::new();
