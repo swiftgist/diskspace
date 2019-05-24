@@ -25,6 +25,13 @@ fn main() {
                 .long("all")
                 .help("display all entries"),
         ).arg(
+            Arg::with_name("color")
+                .short("c")
+                .long("color")
+                .value_name("COLOR")
+                .help("set to black, red, green, yellow, blue, magenta, cyan, white or none")
+                .takes_value(true),
+        ).arg(
             Arg::with_name("verbose")
                 .short("v")
                 .long("verbose")

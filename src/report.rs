@@ -3,6 +3,7 @@ use clap::App;
 use clap::ArgMatches;
 extern crate colored;
 use self::colored::*;
+use std::env;
 use std::collections::BTreeMap;
 use std::io;
 #[allow(unused_imports)] // method write_all is needed
@@ -37,7 +38,32 @@ pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, mat
     };
 
     for &(ref filename, size) in section {
-        writeln!(out, "{} {}", simple_units(size).bold(), filename);
+        writeln!(out, "{} {}", color(size, matches), filename);
+    }
+}
+
+fn color(number: u64, matches: &ArgMatches) -> String {
+    match env::var_os("TERM") {
+        None => simple_units(number),
+        Some(term) => {
+            match term.as_os_str().to_str().unwrap() {
+                "cygwin" => simple_units(number).cyan().bold().to_string(),
+                _ => {
+                    match matches.value_of("color") {
+                        Some("black") => simple_units(number).black().bold().to_string(),
+                        Some("red") => simple_units(number).red().bold().to_string(),
+                        Some("green") => simple_units(number).green().bold().to_string(),
+                        Some("yellow") => simple_units(number).yellow().bold().to_string(),
+                        Some("blue") => simple_units(number).blue().bold().to_string(),
+                        Some("magenta") => simple_units(number).magenta().bold().to_string(),
+                        Some("cyan") => simple_units(number).cyan().bold().to_string(),
+                        Some("white") => simple_units(number).white().bold().to_string(),
+                        Some("none") => simple_units(number),
+                        _ => simple_units(number).yellow().bold().to_string(),
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -74,8 +100,8 @@ mod tests {
             out,
             format!(
                 "{} path/to/fileA\n{} path/to/fileB\n",
-                "    2K".bold(),
-                "    1K".bold()
+                "    2K".yellow().bold(),
+                "    1K".yellow().bold()
             )
             .as_bytes()
         )
@@ -133,26 +159,26 @@ mod tests {
 {} path/to/fileS
 {} path/to/fileT
 ",
-                "    2K".bold(),
-                "    1K".bold(),
-                "  1023".bold(),
-                "  1022".bold(),
-                "  1021".bold(),
-                "  1020".bold(),
-                "  1019".bold(),
-                "  1018".bold(),
-                "  1017".bold(),
-                "  1016".bold(),
-                "  1015".bold(),
-                "  1014".bold(),
-                "  1013".bold(),
-                "  1012".bold(),
-                "  1011".bold(),
-                "  1010".bold(),
-                "  1009".bold(),
-                "  1008".bold(),
-                "  1007".bold(),
-                "  1006".bold()
+                "    2K".yellow().bold(),
+                "    1K".yellow().bold(),
+                "  1023".yellow().bold(),
+                "  1022".yellow().bold(),
+                "  1021".yellow().bold(),
+                "  1020".yellow().bold(),
+                "  1019".yellow().bold(),
+                "  1018".yellow().bold(),
+                "  1017".yellow().bold(),
+                "  1016".yellow().bold(),
+                "  1015".yellow().bold(),
+                "  1014".yellow().bold(),
+                "  1013".yellow().bold(),
+                "  1012".yellow().bold(),
+                "  1011".yellow().bold(),
+                "  1010".yellow().bold(),
+                "  1009".yellow().bold(),
+                "  1008".yellow().bold(),
+                "  1007".yellow().bold(),
+                "  1006".yellow().bold()
             )
             .as_bytes()
         )
