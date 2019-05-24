@@ -1,7 +1,14 @@
 [package]
-name = "ds"
-version = "0.1.0"
+name = "diskspace"
+version = "0.2.0"
 authors = ["Eric Jackson <swiftgist@gmail.com>"]
+description = "Friendly command line utility for finding the largest files and directories"
+repository = "https://github.com/swiftgist/diskspace"
+categories = [ "command-line-utilities" ]
+license = "GPL-3.0-only"
+
+[badges]
+travis-ci = {repository = "swiftgist/diskspace"}
 
 [dependencies]
 clap = "2"
