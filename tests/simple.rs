@@ -6,6 +6,7 @@ use ds::traverse;
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::Write;
+#[cfg(target_os = "linux")]
 use std::os::unix;
 use std::process::Command;
 use tempdir::TempDir;
@@ -13,6 +14,7 @@ use tempdir::TempDir;
 #[cfg(test)]
 fn setup() {}
 
+#[cfg(target_os = "linux")]
 #[test]
 fn simple() {
     setup();
@@ -24,6 +26,7 @@ fn simple() {
     assert!(String::from_utf8_lossy(&output.stdout).contains(" ./target/debug",));
 }
 
+#[cfg(target_os = "linux")]
 #[test]
 fn sample_directories() {
     let mut expected = BTreeMap::new();
@@ -72,6 +75,7 @@ fn sample_directories() {
             writeln!(tmpfile, "{}", contents).unwrap();
         }
     }
+#[cfg(target_os = "linux")]
     let _ = unix::fs::symlink(
         tmp_dir.path().join("sample1"),
         tmp_dir.path().join("skipped.txt"),
