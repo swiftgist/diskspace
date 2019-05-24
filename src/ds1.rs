@@ -10,8 +10,8 @@ use std::path::Path;
 
 /// Original implementation
 /// The goal was to gain an understanding of Rust's Result and Option types
-/// while learning some filesystem operations and structures.  While the
-/// code works, the multiple functions are involved.
+/// while learning some filesystem operations and structures.  I postponed
+/// using recursion.
 ///
 
 /// Traverse
@@ -125,56 +125,6 @@ fn increment(sparent: &str, metadata: &fs::Metadata, disk_space: &mut BTreeMap<S
     disk_space.insert(sparent.to_string(), size);
 }
 
-// /// Generate a text report
-// ///
-// /// Send report to stdout
-// pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
-//     report_stream(&mut io::stdout(), disk_space, matches)
-// }
-//
-// /// Generate a text report
-// ///
-// /// Sort the entries by size and output the top 20
-// #[allow(unused_must_use)]
-// pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
-//     let mut sorted = Vec::from_iter(disk_space);
-//     let end;
-//     if matches.occurrences_of("all") == 0 {
-//         end = if sorted.len() < 20 { sorted.len() } else { 20 };
-//     } else {
-//         end = sorted.len();
-//     }
-//
-//     let section;
-//     if matches.occurrences_of("reverse") == 0 {
-//         sorted.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
-//         section = &sorted[0..end];
-//     } else {
-//         sorted.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
-//         section = &sorted[(sorted.len() - end)..];
-//     }
-//
-//     // for &(ref filename, size) in &sorted[0..end] {
-//     for &(ref filename, size) in section {
-//         writeln!(out, "{} {}", simple_units(size), filename);
-//     }
-// }
-//
-// /// Convert number to human friendly format
-// ///
-// /// Divide successively by 1024 and append the correct suffix
-// fn simple_units(number: u64) -> String {
-//     let units = [" ", "K", "M", "G", "T", "P"];
-//     let index = (number as f64).log(1024.0).trunc() as u32;
-//     let n = number / 1024u64.pow(index);
-//
-//     if index == 0 {
-//         format!("{:>6}", n)
-//     } else {
-//         format!("{:>5}{}", n, units[index as usize])
-//     }
-// }
-//
 #[cfg(test)]
 #[allow(unused_must_use)]
 mod tests {

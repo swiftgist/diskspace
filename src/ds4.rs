@@ -5,6 +5,15 @@ use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+/// Fourth implementation
+/// For using recursion with simple functions, I found that Mutex is useful.
+/// This version became the base for the implementation in ds.rs.  This is
+/// the simplest so far.
+
+/// Traverse
+///
+/// Creates a Mutex of a BTreeMap.  Locks and unwraps the result after
+/// visiting all the files.
 pub fn traverse(anchor: &String, _matches: &ArgMatches) -> BTreeMap<String, u64> {
     let mut mds = Mutex::new(BTreeMap::new());
 
@@ -14,6 +23,10 @@ pub fn traverse(anchor: &String, _matches: &ArgMatches) -> BTreeMap<String, u64>
     disk_space
 }
 
+/// Visit_Dirs
+///
+/// Recursive solution that returns ().  Using or_insert for default values
+/// keeps the increment line concise.
 pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) {
     if dir.is_dir() {
         let anchor = dir.to_owned();

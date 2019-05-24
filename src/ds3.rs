@@ -6,12 +6,19 @@ use std::io::Write;
 use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
 
+/// Third implementation
+/// Began experimenting with structures and implementations.  This one is
+/// a bit indirect since the BTreeMap is updated by visiting all the
+/// directories and files.  The result of ds.visit() is ignored.
+
 struct DiskSpace {
     disk_space: BTreeMap<String, u64>,
 }
 
 impl DiskSpace {
-    // fn update(&mut self, anchor: &String, file: PathBuf, file_size: u64,  matches: &ArgMatches)
+    /// Update
+    ///
+    /// Increment the file size including all ancestors
     fn update(&mut self, anchor: &String, file: PathBuf, file_size: u64) {
         for ancestor in file.ancestors() {
             let ancestor_path = ancestor.to_string_lossy().to_string();
@@ -24,14 +31,13 @@ impl DiskSpace {
             if anchor == &ancestor_path {
                 break;
             }
-            // if ancestor != file && matches.occurrences_of("parent") == 0 {
-            //     break;
-            // }
         }
     }
 
+    /// Visit
+    ///
+    /// Recursively visit all files in a tree, skipping symlinks
     fn visit(&mut self, dir: &String, paths: &Vec<PathBuf>) -> Vec<PathBuf> {
-        // let mut pathnames = paths.to_vec();
         let pathnames = paths.to_vec();
         let dir_path = PathBuf::from(dir);
 
@@ -59,12 +65,14 @@ impl DiskSpace {
     }
 }
 
+/// Traverse
+///
+/// Creates a ds object, calls visit
 pub fn traverse(anchor: &String, _matches: &ArgMatches) -> BTreeMap<String, u64> {
     let mut ds = DiskSpace {
         disk_space: BTreeMap::new(),
     };
 
-    // let files = ds.visit(anchor, &Vec::<PathBuf>::new());
     let _files = ds.visit(anchor, &Vec::<PathBuf>::new());
 
     ds.disk_space
