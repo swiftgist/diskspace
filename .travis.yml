@@ -5,3 +5,26 @@ os:
 rust:
     - stable
     - beta
+jobs:
+  include:
+    - script:
+      - cargo install cargo-rpm
+      - cargo build --release
+      - (cd $TRAVIS_BUILD_DIR/target/release; ln ds diskspace)
+      - sudo apt-get install rpm
+      - cargo rpm build
+      - cp target/release/rpmbuild/RPMS/x86_64/diskspace-*.rpm .
+    - stage: deploy
+     deploy:
+        provider: releases
+        api_key:
+           secure: aVpq1iNWKAZSp5/O5nTNtQ3JOBTgvYVNZHxisdkzX1lPXQBihO0aB1ikPUt1IQea7JNULDTpsPkXNVINHa3fj30uHKIDoP2GoeklvMm4Y0QvVZnXWiM+6QRJApsc41ohocDiyCAClqaMpSbDetVi5vUjyXuTu8fCGaTQBVDzLZrXNfRFMocx2tC8OGKu+d57rLS5KTP/8BrsP+H8ri0X558gY6TmgPZ5prIfbEvvbqfAIeM3fMPQo3tt8MriQjtXOHdEoHcYg9ynKzLI0MIaBXcSDcCpFwznC9y+Rcpx8Zi4KJAhp7CBOMsRimJbf+PygD8E0AC7VkzFQySukUoIWSQR2htG7ZotKI5nnGoCVUFxRXtM2//OZJAP7F2Pv/guFlJ+cDeenUhXaBLDYTJhrJlzbnNO+52d+gFTN5mxBX5ZilQ7eWiwezT3Av/mQBY3iesupKEIEhHaQQ092rbMJRZzf12bIY07JRcwfmgCt7oEepB+rroNesHLZIDN+DQ0GQ97y591oS91JCZjFD/BQru8hHCzQ+lUH6tCLb73NLbvJJqdOgOIYJZrLXT0xa/WNODfqJMmYv7jgjANQdZAvy5wjNvAg4p+OAzHJNfW/li0ZOuwapTUPg70vyNY3FBwIJplTCq9x2YZjEMbHgfrgG6ZjPmq0oDliazKYLwEKxI=
+        file_glob: true
+        file: 
+          - "diskspace-*.rpm"
+        overwrite: true
+        skip_cleanup: true
+        on:
+          repo: swiftgist/diskspace
+          tags: true
+
