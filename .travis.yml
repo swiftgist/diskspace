@@ -1,30 +1,28 @@
 language: rust
 os:
-  - linux
-  - windows
+- linux
+- windows
 rust:
-    - stable
-    - beta
+- stable
 jobs:
   include:
-    - stage: deploy
-      script:
-      - cargo install cargo-rpm
-      - cargo build --release
-      - (cd $TRAVIS_BUILD_DIR/target/release; ln ds diskspace)
-      - sudo apt-get install rpm
-      - cargo rpm build
-      - cp target/release/rpmbuild/RPMS/x86_64/diskspace-*.rpm .
-      deploy:
-        provider: releases
-        api_key:
-           secure: aVpq1iNWKAZSp5/O5nTNtQ3JOBTgvYVNZHxisdkzX1lPXQBihO0aB1ikPUt1IQea7JNULDTpsPkXNVINHa3fj30uHKIDoP2GoeklvMm4Y0QvVZnXWiM+6QRJApsc41ohocDiyCAClqaMpSbDetVi5vUjyXuTu8fCGaTQBVDzLZrXNfRFMocx2tC8OGKu+d57rLS5KTP/8BrsP+H8ri0X558gY6TmgPZ5prIfbEvvbqfAIeM3fMPQo3tt8MriQjtXOHdEoHcYg9ynKzLI0MIaBXcSDcCpFwznC9y+Rcpx8Zi4KJAhp7CBOMsRimJbf+PygD8E0AC7VkzFQySukUoIWSQR2htG7ZotKI5nnGoCVUFxRXtM2//OZJAP7F2Pv/guFlJ+cDeenUhXaBLDYTJhrJlzbnNO+52d+gFTN5mxBX5ZilQ7eWiwezT3Av/mQBY3iesupKEIEhHaQQ092rbMJRZzf12bIY07JRcwfmgCt7oEepB+rroNesHLZIDN+DQ0GQ97y591oS91JCZjFD/BQru8hHCzQ+lUH6tCLb73NLbvJJqdOgOIYJZrLXT0xa/WNODfqJMmYv7jgjANQdZAvy5wjNvAg4p+OAzHJNfW/li0ZOuwapTUPg70vyNY3FBwIJplTCq9x2YZjEMbHgfrgG6ZjPmq0oDliazKYLwEKxI=
-        file_glob: true
-        file: 
-          - "diskspace-*.rpm"
-        overwrite: true
-        skip_cleanup: true
-        on:
-          repo: swiftgist/diskspace
-          tags: true
-
+  - stage: deploy
+    script:
+    - cargo install cargo-rpm
+    - cargo build --release
+    - "(cd $TRAVIS_BUILD_DIR/target/release; ln ds diskspace)"
+    - sudo apt-get install rpm
+    - cargo rpm build
+    - cp target/release/rpmbuild/RPMS/x86_64/diskspace-*.rpm .
+    deploy:
+      provider: releases
+      api_key:
+        secure: F+4lSmXIZo+IY2j9rYcaFkovoN7/CLePXRCyx6z8wvFIG73CH76/uasdNRRADlHz9xlHrrsj12Zyk99dmsWFjJFzPwo5St/FJCZV8U20VROfY91VD+Ap/gMFiqYQ7wRZ9nzX9i6hkPOUgXPt1p26gG0hkipLLAWJGJFyYy0Hjn8m0IY8AOtTtYI3scW/PWO9mtD+he/V9FVN9nDVfMBnepgDOmpJnOzlObCvfi4Gv/B8we1qkAXAVhp6Pc0xLhVLfLav24rdCwAP5SNGlQx9sKt4FI5JlnQRVy/gapVZWt8J9cScGqybBVjCubmMfGxODpbbhrrzAXoFwvtlZRb3GWEACBMrA/OE/orZ20aaQg1tRxqsUE9VpeCWBtgM0meduwJPyRhBG3CjsxtyK99dqE3wEvEuLs2ph0dzbfXpEd7P428YrBZn4BJQq/pTKk6rgCwdc6x6PzElwex6QIXsW2ObxUhOgeHqto5+BFWNeJxp2ByMShHIc5I4U2LXYIVdNCbrfAsVuqigarIBZBK4XWRZP/hfYO7+n3pZJGuBYuFq9xKIO+1f7Ab7/R4umB3SPog7LfApsKjHSkbnsxK6yRMvd260agkyUNs09zqOEm8HH1rkg5yOuAcV5mk2wHXpn3T6VzDofGQo0ATLrfKNNA5a5Xq5ESgplnQCeTzr5F4=
+      file_glob: true
+      file:
+      - diskspace-*.rpm
+      overwrite: true
+      skip_cleanup: true
+      on:
+        repo: swiftgist/diskspace
+        tags: true
