@@ -28,3 +28,9 @@ path = "src/main.rs"
 doctest = false
 name = "ds"
 path = "src/lib.rs"
+
+[package.metadata.rpm.cargo]
+buildflags = ["--release"]
+
+[package.metadata.rpm.targets]
+diskspace = { path = "/usr/bin/ds" }
