@@ -1,0 +1,50 @@
+.TH ds 1
+.SH NAME
+ds \- displays sorted disk space usage
+.SH SYNOPSIS
+.B ds [FLAGS] [OPTIONS] [directory...]
+.SH DESCRIPTION
+.B ds
+displays the twenty largest directories and files.  No directory defaults to the current directory.  Multiple directories are permitted.
+.SH FLAGS
+.PP
+\-a, \-\-all
+.RS 4
+displays all entries
+.RE
+.PP
+\-h, \-\-help
+.RS 4
+Prints the help information
+.RE
+.PP
+\-r, \-\-reverse
+.RS 4
+displays entries in descending order
+.RE
+.PP
+\-V, \-\-version
+.RS 4
+Prints the version
+.RE
+.PP
+\-v, \-\-verbose
+.RS 4
+displays skipped entries including the OS error
+.RE
+.SH OPTIONS
+.PP
+\-c color, \-\-color color
+.RS 4
+sets the size column to a specific terminal color.  The valid colors are black, red, green, yellow, blue, magenta, cyan or none.
+.RE
+.SH EXAMPLES
+.PP
+ds /home /local
+.RS 4
+displays the largest directories and files from /home and /local.
+.RE
+.SH AUTHOR
+Eric Jackson <swiftgist@gmail.com>
+.SH "SEE ALSO"
+.BR du (1)
