@@ -25,7 +25,6 @@ fn setup() {}
 fn simple() {
     setup();
     if let Ok(output) = Command::new("target/debug/ds").output() {
-
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stdout).contains(" ./target/debug",));
     }
@@ -36,7 +35,6 @@ fn simple() {
 fn simple_verbose() {
     setup();
     if let Ok(output) = Command::new("target/debug/ds").arg(".").output() {
-
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stdout).contains(" ./target/debug",));
     }
@@ -46,7 +44,6 @@ fn simple_verbose() {
 fn simple_help() {
     setup();
     if let Ok(output) = Command::new("target/debug/ds").arg("-h").output() {
-
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stdout).contains("Displays disk space usage",));
     }
@@ -101,7 +98,7 @@ fn sample_directories() {
             writeln!(tmpfile, "{}", contents).unwrap();
         }
     }
-#[cfg(target_os = "linux")]
+    #[cfg(target_os = "linux")]
     let _ = unix::fs::symlink(
         tmp_dir.path().join("sample1"),
         tmp_dir.path().join("skipped.txt"),
@@ -163,4 +160,3 @@ fn sample_permission_denied() {
     // tmp_dir.close().unwrap();
     assert_eq!(disk_space, expected);
 }
-

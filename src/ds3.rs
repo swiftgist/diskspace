@@ -81,7 +81,7 @@ pub fn traverse(anchor: &String, _matches: &ArgMatches) -> BTreeMap<String, u64>
 #[cfg(test)]
 #[allow(unused_must_use)]
 mod tests {
-    user super::*;
+    use super::*;
 
     #[test]
     fn exercise() {

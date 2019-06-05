@@ -121,7 +121,9 @@ mod tests {
 
         let mut out = Vec::new();
         let args = vec!["ds", "-r"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("reverse").short("r")).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(Arg::with_name("reverse").short("r"))
+            .get_matches_from(args);
         report_stream(&mut out, data, &matches);
         assert_eq!(
             out,
@@ -243,84 +245,133 @@ mod tests {
     #[test]
     fn color_black() {
         let args = vec!["ds", "-c", "black"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
         assert_eq!(result, "    10".black().bold().to_string());
-
     }
 
     #[test]
     fn color_red() {
         let args = vec!["ds", "-c", "red"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
         assert_eq!(result, "    10".red().bold().to_string());
-
     }
 
     #[test]
     fn color_green() {
         let args = vec!["ds", "-c", "green"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
         assert_eq!(result, "    10".green().bold().to_string());
-
     }
 
     #[test]
     fn color_yellow() {
         let args = vec!["ds", "-c", "yellow"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
         assert_eq!(result, "    10".yellow().bold().to_string());
-
     }
 
     #[test]
     fn color_blue() {
         let args = vec!["ds", "-c", "blue"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
         assert_eq!(result, "    10".blue().bold().to_string());
-
     }
 
     #[test]
     fn color_magenta() {
         let args = vec!["ds", "-c", "magenta"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
         assert_eq!(result, "    10".magenta().bold().to_string());
-
     }
 
     #[test]
     fn color_cyan() {
         let args = vec!["ds", "-c", "cyan"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
         assert_eq!(result, "    10".cyan().bold().to_string());
-
     }
 
     #[test]
     fn color_white() {
         let args = vec!["ds", "-c", "white"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
@@ -330,7 +381,14 @@ mod tests {
     #[test]
     fn color_none() {
         let args = vec!["ds", "-c", "none"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .value_name("COLOR")
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
         env::set_var("TERM", "xterm-256color");
 
         let result = color(10, &matches);
