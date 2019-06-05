@@ -1,7 +1,7 @@
 /// lib.rs is present for integration testing
 extern crate clap;
-#[cfg(test)]
-use clap::{App, Arg};
+// #[cfg(test)]
+// use clap::{App, Arg};
 mod ds;
 #[cfg(feature = "multiple")]
 mod ds1;

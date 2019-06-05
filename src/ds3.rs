@@ -77,3 +77,16 @@ pub fn traverse(anchor: &String, _matches: &ArgMatches) -> BTreeMap<String, u64>
 
     ds.disk_space
 }
+
+#[cfg(test)]
+#[allow(unused_must_use)]
+mod tests {
+    user super::*;
+
+    #[test]
+    fn exercise() {
+        let matches = App::new("DiskSpace").get_matches();
+        traverse("./", &matches);
+    }
+
+}

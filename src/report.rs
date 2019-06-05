@@ -88,6 +88,8 @@ fn simple_units(number: u64) -> String {
 #[allow(unused_must_use)]
 mod tests {
     use super::*;
+    use clap::Arg;
+    use std::env;
 
     #[cfg(target_os = "linux")]
     #[test]
@@ -108,6 +110,36 @@ mod tests {
             )
             .as_bytes()
         )
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn report_short_reverse() {
+        let mut data = BTreeMap::new();
+        data.insert("path/to/fileA".to_string(), 2048 as u64);
+        data.insert("path/to/fileB".to_string(), 1024 as u64);
+
+        let mut out = Vec::new();
+        let args = vec!["ds", "-r"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("reverse").short("r")).get_matches_from(args);
+        report_stream(&mut out, data, &matches);
+        assert_eq!(
+            out,
+            format!(
+                "{} path/to/fileB\n{} path/to/fileA\n",
+                "    1K".yellow().bold(),
+                "    2K".yellow().bold(),
+            )
+            .as_bytes()
+        )
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn report_stdout() {
+        let data = BTreeMap::new();
+        let matches = App::new("DiskSpace").get_matches();
+        report(data, &matches);
     }
 
     #[cfg(target_os = "linux")]
@@ -206,6 +238,103 @@ mod tests {
     #[test]
     fn simple_units_mbytes() {
         assert_eq!(simple_units(2_200_000), "    2M");
+    }
+
+    #[test]
+    fn color_black() {
+        let args = vec!["ds", "-c", "black"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10".black().bold().to_string());
+
+    }
+
+    #[test]
+    fn color_red() {
+        let args = vec!["ds", "-c", "red"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10".red().bold().to_string());
+
+    }
+
+    #[test]
+    fn color_green() {
+        let args = vec!["ds", "-c", "green"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10".green().bold().to_string());
+
+    }
+
+    #[test]
+    fn color_yellow() {
+        let args = vec!["ds", "-c", "yellow"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10".yellow().bold().to_string());
+
+    }
+
+    #[test]
+    fn color_blue() {
+        let args = vec!["ds", "-c", "blue"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10".blue().bold().to_string());
+
+    }
+
+    #[test]
+    fn color_magenta() {
+        let args = vec!["ds", "-c", "magenta"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10".magenta().bold().to_string());
+
+    }
+
+    #[test]
+    fn color_cyan() {
+        let args = vec!["ds", "-c", "cyan"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10".cyan().bold().to_string());
+
+    }
+
+    #[test]
+    fn color_white() {
+        let args = vec!["ds", "-c", "white"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10".white().bold().to_string());
+    }
+
+    #[test]
+    fn color_none() {
+        let args = vec!["ds", "-c", "none"];
+        let matches = App::new("DiskSpace").arg(Arg::with_name("color").short("c").value_name("COLOR").takes_value(true)).get_matches_from(args);
+        env::set_var("TERM", "xterm-256color");
+
+        let result = color(10, &matches);
+        assert_eq!(result, "    10");
     }
 
 }
