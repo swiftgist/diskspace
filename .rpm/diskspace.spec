@@ -8,7 +8,7 @@ Version: @@VERSION@@
 Release: 1
 License: GPLv3
 Group: Applications/System
-Source0: %{name}-%{version}.tar.gz
+Source0: %{name}-%{version}.tgz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 
@@ -16,12 +16,16 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 %{summary}
 
 %prep
-%setup -q
+%setup -c
+
+%build
+/bin/tar xvzf %{SOURCE0}
 
 %install
-rm -rf %{buildroot}
-mkdir -p %{buildroot}
-cp -a * %{buildroot}
+install -d -m 755 %{buildroot}%{_bindir}
+install -m 555 target/release/ds %{buildroot}%{_bindir}
+install -d -m 755 %{buildroot}%{_docdir}/%{name}
+install -m 644 LICENSE %{buildroot}%{_docdir}/%{name}
 
 %clean
 rm -rf %{buildroot}
@@ -29,3 +33,4 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_bindir}/*
+%{_docdir}/%{name}/LICENSE

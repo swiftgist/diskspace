@@ -8,12 +8,10 @@ jobs:
   include:
   - stage: deploy
     script:
-    - cargo install cargo-rpm
-    - cargo build --release
-    - "(cd $TRAVIS_BUILD_DIR/target/release; ln ds diskspace)"
     - sudo apt-get install rpm
-    - cargo rpm build
-    - cp target/release/rpmbuild/RPMS/x86_64/diskspace-*.rpm .
+    - cargo install cargo-make
+    - cargo make travis
+    - cp ~/rpmbuild/RPMS/x86_64/diskspace-*.rpm .
     deploy:
       provider: releases
       api_key:
