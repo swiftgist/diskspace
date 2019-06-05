@@ -1,5 +1,5 @@
 extern crate clap;
-use clap::{App, Arg};
+// use clap::{App, Arg};
 mod ds;
 #[cfg(feature = "multiple")]
 mod ds1;
@@ -11,53 +11,15 @@ mod ds3;
 mod ds4;
 #[cfg(feature = "multiple")]
 mod ds5;
+mod cli;
 mod report;
 
 #[cfg(not(feature = "multiple"))]
 fn main() {
-    let matches = App::new("DiskSpace")
-        .version("0.1.0")
-        .author("Eric Jackson <swiftgist@gmail.com>")
-        .about("Displays disk space usage")
-        .arg(
-            Arg::with_name("all")
-                .short("a")
-                .long("all")
-                .help("display all entries"),
-        )
-        .arg(
-            Arg::with_name("color")
-                .short("c")
-                .long("color")
-                .value_name("COLOR")
-                .help("set to black, red, green, yellow, blue, magenta, cyan, white or none")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("verbose")
-                .short("v")
-                .long("verbose")
-                .help("display skipped entries"),
-        )
-        .arg(
-            Arg::with_name("reverse")
-                .short("r")
-                .long("reverse")
-                .help("display entries descending"),
-        )
-        .arg(
-            Arg::with_name("directory")
-                .min_values(0)
-                .help("start location"),
-        )
-        .get_matches();
+    let matches = cli::get_matches();
+    let anchors: Vec<_> = cli::get_dirs(&matches);
+    let disk_space = ds::traverse(&anchors, &matches);
 
-    let anchor: Vec<_> = match matches.values_of("directory") {
-        Some(start) => start.map(|x| x.to_string()).collect(),
-        None => vec!["./".to_string()],
-    };
-
-    let disk_space = ds::traverse(&anchor, &matches);
     report::report(disk_space, &matches);
 }
 

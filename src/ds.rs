@@ -180,3 +180,77 @@ fn increment(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[allow(unused_must_use)]
+mod tests {
+    use super::*;
+    use std::io::{Error, ErrorKind};
+    use std::sync::PoisonError;
+
+    #[test]
+    fn display() {
+        let mut ve = VerboseErrors::new();
+        ve.verbose = false;
+        let err = Error::new(ErrorKind::Other, "example");
+        assert_eq!(ve.display(&PathBuf::from("/some/path"), err), ());
+    }
+
+    #[test]
+    fn display_verbose() {
+        let mut ve = VerboseErrors::new();
+        ve.verbose = true;
+        let err = Error::new(ErrorKind::Other, "example");
+        assert_eq!(ve.display(&PathBuf::from("/some/path"), err), ());
+    }
+
+    #[test]
+    fn increment_err() {
+        let anchor = PathBuf::from("/tmp");
+        let mds = Mutex::new(BTreeMap::new());
+        let path = PathBuf::from("/tmp/does_not_exist");
+        let mut ve = VerboseErrors::new();
+
+        mds.lock().unwrap().insert("/tmp/does_not_exist".to_string(), 0 as u64);
+        let result = increment(anchor, &mds, path, &mut ve).ok();
+        assert_eq!(result, Some(()));
+        assert_eq!(mds.lock().unwrap().get("/tmp/does_not_exist").unwrap(), &0);
+    }
+
+    #[test]
+    fn symlink_err() {
+        let path = PathBuf::from("/tmp/does_not_exist");
+        let mut ve = VerboseErrors::new();
+        assert_eq!(symlink_or_error(&path, &mut ve), true);
+    }
+
+    #[test]
+    fn fmt_dserror(){
+        let result = format!("{}", DSError::Mutex);
+        assert_eq!(result, "Mutex poisoned");
+    }
+
+    #[test]
+    fn cast_ioerror() {
+        fn nothing() -> DSError {
+           let err = Error::new(ErrorKind::Other, "example");
+           From::from(err)
+        }
+
+        let result = format!("{}", nothing());
+        assert_eq!(result, "example");
+
+    }
+
+    #[test]
+    fn cast_mutex_error() {
+        fn nothing() -> DSError {
+           let err = PoisonError::new(Mutex::new(1));
+           From::from(err)
+        }
+
+        let result = format!("{}", nothing());
+        assert_eq!(result, "Mutex poisoned");
+    }
+}
+
