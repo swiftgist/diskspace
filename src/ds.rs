@@ -211,7 +211,9 @@ mod tests {
         let path = PathBuf::from("/tmp/does_not_exist");
         let mut ve = VerboseErrors::new();
 
-        mds.lock().unwrap().insert("/tmp/does_not_exist".to_string(), 0 as u64);
+        mds.lock()
+            .unwrap()
+            .insert("/tmp/does_not_exist".to_string(), 0 as u64);
         let result = increment(anchor, &mds, path, &mut ve).ok();
         assert_eq!(result, Some(()));
         assert_eq!(mds.lock().unwrap().get("/tmp/does_not_exist").unwrap(), &0);
@@ -225,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn fmt_dserror(){
+    fn fmt_dserror() {
         let result = format!("{}", DSError::Mutex);
         assert_eq!(result, "Mutex poisoned");
     }
@@ -233,24 +235,22 @@ mod tests {
     #[test]
     fn cast_ioerror() {
         fn nothing() -> DSError {
-           let err = Error::new(ErrorKind::Other, "example");
-           From::from(err)
+            let err = Error::new(ErrorKind::Other, "example");
+            From::from(err)
         }
 
         let result = format!("{}", nothing());
         assert_eq!(result, "example");
-
     }
 
     #[test]
     fn cast_mutex_error() {
         fn nothing() -> DSError {
-           let err = PoisonError::new(Mutex::new(1));
-           From::from(err)
+            let err = PoisonError::new(Mutex::new(1));
+            From::from(err)
         }
 
         let result = format!("{}", nothing());
         assert_eq!(result, "Mutex poisoned");
     }
 }
-

@@ -1,3 +1,4 @@
+#![cfg(target_os = "linux")]
 use clap::ArgMatches;
 use std::collections::BTreeMap;
 use std::fs;
@@ -5,7 +6,10 @@ use std::fs;
 use std::fs::File;
 #[allow(unused_imports)] // method write_all is needed
 use std::io::Write;
+#[cfg(target_os = "linux")]
 use std::os::linux::fs::MetadataExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::MetadataExt;
 use std::path::Path;
 
 /// Original implementation

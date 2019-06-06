@@ -1,7 +1,11 @@
+#![cfg(target_os = "linux")]
 use clap::ArgMatches;
 use std::collections::BTreeMap;
 use std::fs;
+#[cfg(target_os = "linux")]
 use std::os::linux::fs::MetadataExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::MetadataExt;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::thread;

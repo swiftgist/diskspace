@@ -1,7 +1,10 @@
 use clap::ArgMatches;
 use std::collections::BTreeMap;
 use std::fs;
+#[cfg(target_os = "linux")]
 use std::os::linux::fs::MetadataExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::MetadataExt;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
@@ -44,7 +47,13 @@ pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) {
             if path.is_dir() {
                 visit_dirs(path.to_owned(), mds);
             } else {
-                let filesize = path.metadata().unwrap().st_size();
+                let filesize = match path.metadata() {
+                    #[cfg(target_os = "linux")]
+                    Ok(metadata) => metadata.st_size(),
+                    #[cfg(target_os = "windows")]
+                    Ok(metadata) => metadata.file_size(),
+                    Err(_) => 0,
+                };
                 for ancestor in path.ancestors() {
                     let ancestor_path = ancestor.to_string_lossy().to_string();
                     *mds.lock().unwrap().entry(ancestor_path).or_insert(0) += filesize;

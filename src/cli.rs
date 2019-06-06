@@ -60,7 +60,9 @@ mod tests {
     #[test]
     fn dirs() {
         let args = vec!["ds", "/tmp"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("directory").min_values(0)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(Arg::with_name("directory").min_values(0))
+            .get_matches_from(args);
 
         let result = get_dirs(&matches);
 
@@ -70,12 +72,13 @@ mod tests {
     #[test]
     fn dirs_default() {
         let args = vec!["ds"];
-        let matches = App::new("DiskSpace").arg(Arg::with_name("directory").min_values(0)).get_matches_from(args);
+        let matches = App::new("DiskSpace")
+            .arg(Arg::with_name("directory").min_values(0))
+            .get_matches_from(args);
 
         let result = get_dirs(&matches);
 
         assert_eq!(result, vec!["./".to_string()]);
     }
-
 
 }

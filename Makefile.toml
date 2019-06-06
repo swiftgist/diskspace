@@ -1,0 +1,46 @@
+[tasks.travis]
+dependencies = [
+"build",
+"test",
+"tar",
+"spec",
+"rpmbuild"
+]
+
+[tasks.all]
+dependencies = [
+"build",
+"tarpaulin",
+"tar",
+"spec",
+"rpmbuild"
+]
+
+[tasks.build]
+args = ["build", "--release"]
+
+[tasks.test]
+args = ["test"]
+
+[tasks.tarpaulin]
+command = "cargo"
+args = ["tarpaulin", "-v", "--exclude-files", "learning/*.rs"]
+
+[tasks.tar]
+script = [
+    "mkdir -p ~/rpmbuild/SOURCES",
+		"VERSION=`awk -F\\\" '/^version/{print $2}' Cargo.toml`",
+    "tar czf ~/rpmbuild/SOURCES/diskspace-${VERSION}.tgz  LICENSE target/release/ds",
+]
+
+[tasks.spec]
+script = [
+    "mkdir -p ~/rpmbuild/SPECS",
+		"VERSION=`awk -F\\\" '/^version/{print $2}' Cargo.toml`",
+    "sed -e 's!@@VERSION@@!'${VERSION}'!' .rpm/diskspace.spec > ~/rpmbuild/SPECS/diskspace.spec"
+]
+
+[tasks.rpmbuild]
+script = [
+    "rpmbuild -bb ~/rpmbuild/SPECS/diskspace.spec 2>&1| grep ^Wrote"
+]

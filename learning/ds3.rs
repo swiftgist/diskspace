@@ -1,9 +1,13 @@
+#![cfg(target_os = "linux")]
 use clap::ArgMatches;
 use std::collections::BTreeMap;
 use std::fs;
 #[allow(unused_imports)] // method write_all is needed
 use std::io::Write;
+#[cfg(target_os = "linux")]
 use std::os::linux::fs::MetadataExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::MetadataExt;
 use std::path::PathBuf;
 
 /// Third implementation
@@ -81,12 +85,13 @@ pub fn traverse(anchor: &String, _matches: &ArgMatches) -> BTreeMap<String, u64>
 #[cfg(test)]
 #[allow(unused_must_use)]
 mod tests {
-    user super::*;
+    use super::*;
+    use clap::App;
 
     #[test]
     fn exercise() {
         let matches = App::new("DiskSpace").get_matches();
-        traverse("./", &matches);
+        traverse(&"./".to_string(), &matches);
     }
 
 }
