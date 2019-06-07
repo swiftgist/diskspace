@@ -2,22 +2,6 @@ Branch|Build
 ---|---
 master|![Build Status](https://travis-ci.org/swiftgist/diskspace.svg?branch=master)
 
-# Purpose
-The motivation of this project is for me to learn Rust.  After reading half of two different books, I wrote `ds`.  The program is useful but primitive.  My next goals are further exploring unit tests and command line arguments.
-
-# Filesystem Full?
-Linux users are familiar with the `df` and `du` commands, respectively disk free and disk usage.  When a filesystem is full (or nearly so), `df` will confirm that available space is zero.  The `du` command with options can be more helpful.  For example, 
-```
-du -sm * | sort -n 
-```
-will list all files and directories.  However, hidden files and directories are not included.  Using 
-```
-du -sm .??* *| sort -n
-```
- will include hidden files and directories without including the parent directory.  Additionally, knowing the largest directory simply means traversing any of the subdirectories and repeating the command.  Tracking down the largest directories and files allows one to make the decision to remove them or accept that more space is necessary.
-
-Explaining the above to new Linux users such as how shell expansion works, that directories such as `.a` will be skipped and the large numbers are all mebibytes will be unwelcome.  For experienced users, the investigation is a distraction and takes too long.
-
 # DiskSpace
 The program `ds` returns the 20 largest directories and files from the current directory.  The output is human friendly with appropriate units.  For example, the output of the src directory is
 
@@ -44,12 +28,55 @@ The program `ds` returns the 20 largest directories and files from the current d
     3K ./.git/hooks/update.sample
 ```
 
-This command can help find old browser cache files, a misplaced ISO image or a sudden increase in assets of a game.
+This command can help find old browser cache files, a misplaced ISO image or a sudden increase in assets of a game.  
 
-# Building
-Since this is Rust, the command is
+# Examples
+To list all entries
 
 ```
-$ cargo build
+$ ds -a
+```
+
+To reverse the sort
+
+```
+$ ds -r
+```
+
+To see any skipped files or directories and the error
+
+```
+$ ds -v
+```
+
+To search multiple directories
+
+```
+$ ds /home /local
+```
+
+On windows
+
+```
+> ds \Users \temp
+```
+
+To highlight the sizes in green
+
+```
+$ ds -c green
+```
+
+To turn off color
+
+```
+$ ds -c none
+```
+
+# Installation
+From rust
+
+```
+$ cargo install diskspace
 ```
 
