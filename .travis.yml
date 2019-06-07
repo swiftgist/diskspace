@@ -7,10 +7,11 @@ rust:
 jobs:
   include:
   - stage: deploy
+    os: linux
     script:
     - sudo apt-get install rpm
     - cargo install cargo-make
-    - cargo make travis
+    - cargo make linux
     - cp ~/rpmbuild/RPMS/x86_64/diskspace-*.rpm .
     deploy:
       provider: releases
@@ -19,6 +20,23 @@ jobs:
       file_glob: true
       file:
       - diskspace-*.rpm
+      overwrite: true
+      skip_cleanup: true
+      on:
+        repo: swiftgist/diskspace
+        tags: true
+  - stage: deploy
+    os: windows
+    script:
+    - cargo install cargo-make
+    - cargo make windows
+    deploy:
+      provider: releases
+      api_key:
+        secure: dqd5x2VdOSA1p+b+6cL16f0wQDXR7K0f4GrQZdIfIhsgbFMaDMlK+dWYz3176nqCXrdP4B2fMLfzJVGExgzkV7j8Qdr23C/I91wiiek1OXtKqz0LVX9948orb8FZcoYoPGgFtsoMAF5SBkcB8NZJVBMKUUGgqMchZFb7VyFch0IEyr8H/rBNWf0jo77VDqZKHsuGAbAQfshea6El67nqpk2LxOea54nk6rnbYS7yw8jbExpUi/hOUm+gK9ZWUJHe2pWeW9ZommqRrWV+GtGEyqpxVkrteFNIrffSEPfDzRz+O0ehYJn6eQAUOhU2rxxEcN+hMEkzkhbmMRFfHOW3V7BcBnnyZx5O0hRoQ3qgKTClLmwQtk09j20NeLLe1jlkSQYT68trvCj1yoOrX2a/3mCXnxPcxWN8pjBr7RAoBab8zpeEKRepHC69y76uMLojzvp2USGadRx/jaQqvsPNHr1ufI+d3JmGNp417XjBh/8jwb4mNJRM59iGNiBMrWoTsbywto1/zKyDRUhLzopS1k+nCQ8xSWPd1Jrr42XTw/kDALmGeM7716O828zCvA1iwIZyymrx0QbJa2j+MyvrUqP0evY5WBkKy/JLQOCmsgPBwJCBtq3DrymasbRsaTv98Nryv1OQLP5YFDSGb1fXeOMUxdpI3OprbRmBXlVt+Mo=
+      file_glob: true
+      file:
+      - diskspace-*.zip
       overwrite: true
       skip_cleanup: true
       on:

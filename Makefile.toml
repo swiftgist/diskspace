@@ -1,4 +1,4 @@
-[tasks.travis]
+[tasks.linux]
 dependencies = [
 "build",
 "test",
