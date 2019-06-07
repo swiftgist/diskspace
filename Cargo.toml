@@ -6,6 +6,7 @@ description = "Friendly command line utility for finding the largest files and d
 repository = "https://github.com/swiftgist/diskspace"
 categories = [ "command-line-utilities" ]
 license = "GPL-3.0-only"
+readme = "README.md"
 
 [badges]
 travis-ci = {repository = "swiftgist/diskspace"}
@@ -30,9 +31,3 @@ path = "learning/main.rs"
 doctest = false
 name = "ds"
 path = "src/lib.rs"
-
-[package.metadata.rpm.cargo]
-buildflags = ["--release"]
-
-[package.metadata.rpm.targets]
-diskspace = { path = "/usr/bin/ds" }
