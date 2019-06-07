@@ -30,7 +30,7 @@ args = ["tarpaulin", "-v", "--exclude-files", "learning/*.rs"]
 script = [
     "mkdir -p ~/rpmbuild/SOURCES",
 		"VERSION=`awk -F\\\" '/^version/{print $2}' Cargo.toml`",
-    "tar czf ~/rpmbuild/SOURCES/diskspace-${VERSION}.tgz  LICENSE man/ds.1 target/release/ds",
+    "tar czf ~/rpmbuild/SOURCES/diskspace-${VERSION}.tgz  LICENSE README.md man/ds.1 target/release/ds",
 ]
 
 [tasks.spec]
