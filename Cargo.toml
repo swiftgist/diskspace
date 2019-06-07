@@ -1,6 +1,6 @@
 [package]
 name = "diskspace"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Eric Jackson <swiftgist@gmail.com>"]
 description = "Friendly command line utility for finding the largest files and directories"
 repository = "https://github.com/swiftgist/diskspace"
