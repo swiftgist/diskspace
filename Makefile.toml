@@ -1,10 +1,17 @@
-[tasks.travis]
+[tasks.linux]
 dependencies = [
 "build",
 "test",
 "tar",
 "spec",
 "rpmbuild"
+]
+
+[tasks.windows]
+dependencies = [
+"build",
+"test",
+"zip"
 ]
 
 [tasks.all]
@@ -44,3 +51,12 @@ script = [
 script = [
     "rpmbuild -bb ~/rpmbuild/SPECS/diskspace.spec 2>&1| grep ^Wrote"
 ]
+
+[tasks.zip]
+description = "Zips up the release binary, README, and license(s)"
+category = "Publish"
+env = { "OUTPUT_NAME" = "diskspace-0.3.0-${TARGET}"}
+script = [
+  "powershell -executionPolicy bypass -file .zip/zip.ps1"
+]
+
