@@ -1,10 +1,31 @@
+[tasks.all]
+dependencies = [
+"build",
+"tarpaulin",
+"rpm",
+"deb"
+]
+
 [tasks.linux]
 dependencies = [
 "build",
 "test",
+"rpm",
+"deb"
+]
+
+[tasks.rpm]
+dependencies = [
 "tar",
 "spec",
 "rpmbuild"
+]
+
+[tasks.deb]
+dependencies = [
+"control",
+"debsetup",
+"dpkg"
 ]
 
 [tasks.windows]
@@ -12,15 +33,6 @@ dependencies = [
 "build",
 "test",
 "zip"
-]
-
-[tasks.all]
-dependencies = [
-"build",
-"tarpaulin",
-"tar",
-"spec",
-"rpmbuild"
 ]
 
 [tasks.build]
@@ -50,6 +62,29 @@ script = [
 [tasks.rpmbuild]
 script = [
     "rpmbuild -bb ~/rpmbuild/SPECS/diskspace.spec 2>&1| grep ^Wrote"
+]
+
+[tasks.control]
+script = [
+		"VERSION=`awk -F\\\" '/^version/{print $2}' Cargo.toml`",
+    "mkdir -p target/release/diskspace-${VERSION}/DEBIAN",
+    "sed -e 's!@@VERSION@@!'${VERSION}'!' .deb/control > target/release/diskspace-${VERSION}/DEBIAN/control"
+]
+
+[tasks.debsetup]
+script = [
+		"VERSION=`awk -F\\\" '/^version/{print $2}' Cargo.toml`",
+    "mkdir -p target/release/diskspace-${VERSION}/usr/bin",
+    "mkdir -p target/release/diskspace-${VERSION}/usr/share/doc/packages/diskspace",
+		"install -m 755 target/release/ds target/release/diskspace-${VERSION}/usr/bin",
+		"install -m 755 README.md target/release/diskspace-${VERSION}/usr/share/doc/packages/diskspace/",
+		"install -m 755 LICENSE target/release/diskspace-${VERSION}/usr/share/doc/packages/diskspace/",
+]
+
+[tasks.dpkg]
+script = [
+		"VERSION=`awk -F\\\" '/^version/{print $2}' Cargo.toml`",
+    "dpkg-deb -b target/release/diskspace-${VERSION}"
 ]
 
 [tasks.zip]

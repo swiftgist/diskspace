@@ -13,6 +13,7 @@ jobs:
     - cargo install cargo-make
     - cargo make linux
     - cp ~/rpmbuild/RPMS/x86_64/diskspace-*.rpm .
+    - cp target/release/diskspace-*.deb .
     deploy:
       provider: releases
       api_key:
@@ -20,6 +21,7 @@ jobs:
       file_glob: true
       file:
       - diskspace-*.rpm
+      - diskspace-*.deb
       overwrite: true
       skip_cleanup: true
       on:
