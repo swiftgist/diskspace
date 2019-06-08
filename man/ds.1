@@ -15,7 +15,12 @@ displays all entries
 .PP
 \-h, \-\-help
 .RS 4
-Prints the help information
+prints the help information
+.RE
+.PP
+\-x, \-\-one-filesystem
+.RS 4
+ignores other fileystems
 .RE
 .PP
 \-r, \-\-reverse
@@ -37,6 +42,16 @@ displays skipped entries including the OS error
 \-c color, \-\-color color
 .RS 4
 sets the size column to a specific terminal color.  The valid colors are black, red, green, yellow, blue, magenta, cyan or none.
+.RE
+.PP
+\-e string, \-\-exclude string
+.RS 4
+exclude lines containing string.  May be specified multiple times.
+.RE
+.PP
+\-n lines, \-\-lines lines
+.RS 4
+display number of lines of entries
 .RE
 .SH EXAMPLES
 .PP

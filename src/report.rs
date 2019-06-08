@@ -10,6 +10,43 @@ use std::io;
 use std::io::Write;
 use std::iter::FromIterator;
 
+pub struct ReportSettings {
+    pub all: bool,
+    pub reverse: bool,
+    pub lines: usize,
+    pub exclude: Vec<String>,
+}
+
+impl ReportSettings {
+    pub fn new() -> ReportSettings {
+        ReportSettings {
+            all: false,
+            reverse: false,
+            lines: 20,
+            exclude: Vec::new(),
+        }
+    }
+
+    pub fn settings(&mut self, matches: &ArgMatches) {
+        self.all = matches.occurrences_of("all") > 0;
+        self.reverse = matches.occurrences_of("reverse") > 0;
+
+        if let Some(lines) = matches.value_of("lines") {
+            self.lines = match lines.to_string().parse() {
+                Err(err) => {
+                    eprintln!("Check lines option: {}", err);
+                    self.lines
+                }
+                Ok(lines) => lines,
+            }
+        }
+
+        if let Some(exclude) = matches.values_of("exclude") {
+            self.exclude = exclude.map(|x| x.to_string()).collect();
+        }
+    }
+}
+
 /// Report
 ///
 /// Send report to stdout
@@ -21,25 +58,58 @@ pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
 ///
 /// Sort the entries by size and output the top 20
 #[allow(unused_must_use)]
-pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
-    let mut sorted = Vec::from_iter(disk_space);
-    let end = if matches.occurrences_of("all") == 0 && sorted.len() > 20 {
-        20
+pub fn report_stream(
+    out: &mut io::Write,
+    mut disk_space: BTreeMap<String, u64>,
+    matches: &ArgMatches,
+) {
+    let mut rs = ReportSettings::new();
+    rs.settings(matches);
+    if !rs.exclude.is_empty() {
+        disk_space = exclude(&rs, disk_space);
+    }
+
+    let mut unsorted = Vec::from_iter(disk_space);
+    let end = endpoint(&rs, unsorted.len());
+
+    let sorted = if rs.reverse {
+        unsorted.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
+        &unsorted[(unsorted.len() - end)..]
     } else {
-        sorted.len()
+        unsorted.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
+        &unsorted[0..end]
     };
 
-    let section = if matches.occurrences_of("reverse") == 0 {
-        sorted.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
-        &sorted[0..end]
-    } else {
-        sorted.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
-        &sorted[(sorted.len() - end)..]
-    };
-
-    for &(ref filename, size) in section {
+    for &(ref filename, size) in sorted {
         writeln!(out, "{} {}", color(size, matches), filename);
     }
+}
+
+fn endpoint(rs: &ReportSettings, length: usize) -> usize {
+    if !rs.all && length > rs.lines {
+        rs.lines
+    } else {
+        length
+    }
+}
+
+fn exclude(rs: &ReportSettings, disk_space: BTreeMap<String, u64>) -> BTreeMap<String, u64> {
+    let mut tmp = BTreeMap::new();
+    let mut include = true;
+    for filename in disk_space.keys() {
+        for exclusion in &rs.exclude {
+            if filename.contains(exclusion) {
+                include = false;
+                break;
+            }
+        }
+        if include {
+            tmp.insert(filename.to_string(), *disk_space.get(filename).unwrap());
+        } else {
+            include = true;
+        }
+    }
+    tmp
 }
 
 /// Color
@@ -133,6 +203,30 @@ mod tests {
                 "    2K".yellow().bold(),
             )
             .as_bytes()
+        )
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn report_short_exclude() {
+        let mut data = BTreeMap::new();
+        data.insert("path/to/fileA".to_string(), 2048 as u64);
+        data.insert("path/to/fileB".to_string(), 1024 as u64);
+
+        let mut out = Vec::new();
+        let args = vec!["ds", "-e", "fileB"];
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("exclude")
+                    .short("e")
+                    .min_values(1)
+                    .multiple(true),
+            )
+            .get_matches_from(args);
+        report_stream(&mut out, data, &matches);
+        assert_eq!(
+            out,
+            format!("{} path/to/fileA\n", "    2K".yellow().bold(),).as_bytes()
         )
     }
 
@@ -393,6 +487,78 @@ mod tests {
 
         let result = color(10, &matches);
         assert_eq!(result, "    10");
+    }
+
+    #[test]
+    fn settings_defaults() {
+        let args = vec!["ds"];
+        let matches = App::new("DiskSpace").get_matches_from(args);
+        let mut rs = ReportSettings::new();
+        rs.settings(&matches);
+        assert_eq!(rs.all, false);
+        assert_eq!(rs.reverse, false);
+        assert_eq!(rs.lines, 20);
+    }
+
+    #[test]
+    fn settings_all() {
+        let args = vec!["ds", "-a"];
+        let matches = App::new("DiskSpace")
+            .arg(Arg::with_name("all").short("a"))
+            .get_matches_from(args);
+        let mut rs = ReportSettings::new();
+        rs.settings(&matches);
+        assert_eq!(rs.all, true);
+    }
+
+    #[test]
+    fn settings_reverse() {
+        let args = vec!["ds", "-r"];
+        let matches = App::new("DiskSpace")
+            .arg(Arg::with_name("reverse").short("r"))
+            .get_matches_from(args);
+        let mut rs = ReportSettings::new();
+        rs.settings(&matches);
+        assert_eq!(rs.reverse, true);
+    }
+
+    #[test]
+    fn settings_lines() {
+        let args = vec!["ds", "-n", "10"];
+        let matches = App::new("DiskSpace")
+            .arg(Arg::with_name("lines").short("n").takes_value(true))
+            .get_matches_from(args);
+        let mut rs = ReportSettings::new();
+        rs.settings(&matches);
+        assert_eq!(rs.lines, 10);
+    }
+
+    #[test]
+    fn settings_lines_invalid_value() {
+        let args = vec!["ds", "-n", "apple"];
+        let matches = App::new("DiskSpace")
+            .arg(Arg::with_name("lines").short("n").takes_value(true))
+            .get_matches_from(args);
+        let mut rs = ReportSettings::new();
+        rs.settings(&matches);
+        assert_eq!(rs.lines, 20);
+    }
+
+    #[test]
+    fn settings_exclude() {
+        let args = vec!["ds", "-e", "apple", "pear"];
+        let matches = App::new("DiskSpace")
+            .arg(
+                Arg::with_name("exclude")
+                    .short("e")
+                    .min_values(1)
+                    .multiple(true)
+                    .takes_value(true),
+            )
+            .get_matches_from(args);
+        let mut rs = ReportSettings::new();
+        rs.settings(&matches);
+        assert_eq!(rs.exclude, vec!["apple".to_string(), "pear".to_string()]);
     }
 
 }
