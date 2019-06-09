@@ -2,7 +2,7 @@ extern crate clap;
 use clap::{App, Arg, ArgMatches};
 
 pub fn get_matches() -> ArgMatches<'static> {
-    App::new("DiskSpace")
+    let app = App::new("DiskSpace")
         .version("0.4.0")
         .author("Eric Jackson <swiftgist@gmail.com>")
         .about("Displays disk space usage")
@@ -21,6 +21,23 @@ pub fn get_matches() -> ArgMatches<'static> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("lines")
+                .short("n")
+                .long("lines")
+                .value_name("LINES")
+                .help("display number of LINES of entries")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("exclude")
+                .short("e")
+                .long("exclude")
+                .min_values(1)
+                .multiple(true)
+                .value_name("STRING")
+                .help("exclude lines containing STRING"),
+        )
+        .arg(
             Arg::with_name("verbose")
                 .short("v")
                 .long("verbose")
@@ -36,8 +53,19 @@ pub fn get_matches() -> ArgMatches<'static> {
             Arg::with_name("directory")
                 .min_values(0)
                 .help("start location"),
+        );
+
+    if cfg!(target_os = "windows") {
+        app.get_matches()
+    } else {
+        app.arg(
+            Arg::with_name("one-filesystem")
+                .short("x")
+                .long("one-filesystem")
+                .help("ignore other filesystems"),
         )
         .get_matches()
+    }
 }
 
 pub fn get_dirs(matches: &ArgMatches) -> Vec<String> {

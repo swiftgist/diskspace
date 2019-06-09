@@ -73,6 +73,37 @@ impl VerboseErrors {
     }
 }
 
+pub struct FilesystemDevice {
+    pub enabled: bool,
+    pub device: u64,
+}
+
+impl FilesystemDevice {
+    pub fn new() -> FilesystemDevice {
+        FilesystemDevice {
+            enabled: false,
+            device: 0,
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn get(&mut self, _path: &PathBuf) -> u64 {
+        0
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    pub fn get(&mut self, path: &PathBuf) -> u64 {
+        if self.enabled {
+            match path.metadata() {
+                Err(_) => 0,
+                Ok(metadata) => metadata.st_dev(),
+            }
+        } else {
+            0
+        }
+    }
+}
+
 /// Traverse
 ///
 /// Creates a Mutex of a BTreeMap and a VerboseErrors.  Supports scanning
@@ -80,11 +111,13 @@ impl VerboseErrors {
 pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String, u64> {
     let mut mds = Mutex::new(BTreeMap::new());
     let mut ve = VerboseErrors::new();
+    let mut fd = FilesystemDevice::new();
 
     ve.verbose = matches.occurrences_of("verbose") > 0;
+    fd.enabled = matches.occurrences_of("one-filesystem") > 0;
 
     for dir in anchors {
-        match visit_dirs(PathBuf::from(dir), &mut mds, &mut ve) {
+        match visit_dirs(PathBuf::from(dir), &mut mds, &mut ve, &mut fd) {
             Err(err) => {
                 eprintln!("Error: {}", err);
                 process::exit(1);
@@ -105,9 +138,11 @@ pub fn visit_dirs(
     dir: PathBuf,
     mds: &mut Mutex<BTreeMap<String, u64>>,
     ve: &mut VerboseErrors,
+    fd: &mut FilesystemDevice,
 ) -> Result<(), DSError> {
     if dir.is_dir() {
         let anchor = dir.to_owned();
+        let anchor_device = fd.get(&dir);
         let contents = match fs::read_dir(&dir) {
             Ok(contents) => contents,
             Err(err) => {
@@ -122,8 +157,12 @@ pub fn visit_dirs(
             if symlink_or_error(&path, ve) {
                 continue;
             }
+
             if path.is_dir() {
-                visit_dirs(path.to_owned(), mds, ve)?;
+                if anchor_device != fd.get(&path) {
+                    continue;
+                }
+                visit_dirs(path.to_owned(), mds, ve, fd)?;
             } else {
                 increment(anchor.to_owned(), &mds, path, ve)?;
             }
@@ -253,4 +292,41 @@ mod tests {
         let result = format!("{}", nothing());
         assert_eq!(result, "Mutex poisoned");
     }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn filesystem_device_disabled() {
+        let mut fd = FilesystemDevice::new();
+        let result = fd.get(&PathBuf::from("/tmp"));
+        assert_eq!(result, 0);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn filesystem_device_enabled() {
+        let mut fd = FilesystemDevice::new();
+        fd.enabled = true;
+        let result = fd.get(&PathBuf::from("/tmp"));
+        assert_ne!(result, 0);
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn filesystem_device_enabled() {
+        let mut fd = FilesystemDevice::new();
+        fd.enabled = true;
+        let result = fd.get(&PathBuf::from("/Users"));
+        assert_eq!(result, 0);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn filesystem_device_error() {
+        let mut fd = FilesystemDevice::new();
+        fd.enabled = true;
+        let result = fd.get(&PathBuf::from("/doesnotexist"));
+        assert_eq!(result, 0);
+    }
+
 }
+

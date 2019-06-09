@@ -37,6 +37,12 @@ To list all entries
 $ ds -a
 ```
 
+To restrict to a single filesystem (not on Windows)
+
+```
+$ ds -x
+```
+
 To reverse the sort
 
 ```
@@ -72,6 +78,19 @@ To turn off color
 ```
 $ ds -c none
 ```
+
+To exclude lines containing `iso` and `img`
+
+```
+$ ds -e iso img
+```
+
+To display only 10 lines
+
+```
+$ ds -n 10
+```
+
 
 # Installation
 From rust
