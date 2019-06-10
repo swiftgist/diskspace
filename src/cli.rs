@@ -3,7 +3,7 @@ use clap::{App, Arg, ArgMatches};
 
 pub fn get_matches() -> ArgMatches<'static> {
     let app = App::new("DiskSpace")
-        .version("0.4.0")
+        .version("0.5.0")
         .author("Eric Jackson <swiftgist@gmail.com>")
         .about("Displays disk space usage")
         .arg(
