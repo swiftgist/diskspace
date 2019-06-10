@@ -93,6 +93,16 @@ $ ds -n 10
 
 
 # Installation
+For Debian and RPM based systems, download the latest release from [releases](https://github.com/swiftgist/diskspace/releases). Run
+
+```
+$ sudo apt install ./diskspace-0.5.0.deb
+```
+
+```
+# rpm -ivh ./diskspace-0.5.0.rpm
+```
+
 From rust
 
 ```
