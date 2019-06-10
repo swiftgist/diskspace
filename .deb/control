@@ -1,0 +1,8 @@
+Package: diskspace
+Version: @@VERSION@@
+Section: base
+Priority: optional
+Architecture: amd64
+Maintainer: Eric Jackson <swiftgist@gmail.com>
+Description: Displays disk space usage
+  Friendly command line utility for finding the largest files and directories
