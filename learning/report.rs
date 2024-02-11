@@ -21,7 +21,11 @@ pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
 ///
 /// Sort the entries by size and output the top 20
 #[allow(unused_must_use)]
-pub fn report_stream(out: &mut io::Write, disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
+pub fn report_stream(
+    out: &mut dyn io::Write,
+    disk_space: BTreeMap<String, u64>,
+    matches: &ArgMatches,
+) {
     let mut sorted = Vec::from_iter(disk_space);
     let end = if matches.occurrences_of("all") == 0 && sorted.len() > 20 {
         20
@@ -394,5 +398,4 @@ mod tests {
         let result = color(10, &matches);
         assert_eq!(result, "    10");
     }
-
 }

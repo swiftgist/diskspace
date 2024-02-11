@@ -59,7 +59,7 @@ pub fn report(disk_space: BTreeMap<String, u64>, matches: &ArgMatches) {
 /// Sort the entries by size and output the top 20
 #[allow(unused_must_use)]
 pub fn report_stream(
-    out: &mut io::Write,
+    out: &mut dyn io::Write,
     mut disk_space: BTreeMap<String, u64>,
     matches: &ArgMatches,
 ) {
@@ -560,5 +560,4 @@ mod tests {
         rs.settings(&matches);
         assert_eq!(rs.exclude, vec!["apple".to_string(), "pear".to_string()]);
     }
-
 }

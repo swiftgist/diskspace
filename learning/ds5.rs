@@ -57,7 +57,7 @@ pub fn visit_dirs(dir: PathBuf, mds: &mut Mutex<BTreeMap<String, u64>>) {
             if path.is_dir() {
                 if path.metadata().unwrap().st_size() > 500 {
                     let mut child_mds = Mutex::new(BTreeMap::new());
-                    &children.push(thread::spawn(move || {
+                    let _ = &children.push(thread::spawn(move || {
                         visit_dirs(path.to_owned(), &mut child_mds);
                         child_mds
                     }));
