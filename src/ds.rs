@@ -7,10 +7,9 @@ use std::io;
 use std::os::linux::fs::MetadataExt;
 #[cfg(target_os = "windows")]
 use std::os::windows::fs::MetadataExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::sync;
-use std::sync::Mutex;
 
 /// Current implementation
 /// Expand upon the basic solution from ds4.rs.  Include proper error
@@ -106,69 +105,93 @@ impl FilesystemDevice {
 
 /// Traverse
 ///
-/// Creates a Mutex of a BTreeMap and a VerboseErrors.  Supports scanning
-/// multiple directories.
+/// Creats a final BTreeMap of all anchors
 pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String, u64> {
-    let mut mds = Mutex::new(BTreeMap::new());
     let mut ve = VerboseErrors::new();
     let mut fd = FilesystemDevice::new();
+    let mut diskspace = BTreeMap::new();
 
     ve.verbose = matches.occurrences_of("verbose") > 0;
     fd.enabled = matches.occurrences_of("one-filesystem") > 0;
 
     for dir in anchors {
-        match visit_dirs(PathBuf::from(dir), &mut mds, &mut ve, &mut fd) {
+        let mut map = match visit(PathBuf::from(dir), &mut ve, &mut fd) {
             Err(err) => {
                 eprintln!("Error: {}", err);
                 process::exit(1);
             }
-            _ => (),
-        }
+            Ok(map) => map,
+        };
+        diskspace.append(&mut map);
     }
 
-    let disk_space = mds.lock().ok().unwrap().clone();
-    disk_space
+    diskspace
 }
 
-/// Visit_Dirs
+/// Visit
 ///
-/// Recursively searches a directory and returns Result<>. Ignores
-/// directories with errors and symlinks.
-pub fn visit_dirs(
-    dir: PathBuf,
-    mds: &mut Mutex<BTreeMap<String, u64>>,
+/// Recursively search directories and returns BTreeMaps containing pathnames and
+/// filesizes.
+pub fn visit(
+    path: PathBuf,
     ve: &mut VerboseErrors,
     fd: &mut FilesystemDevice,
-) -> Result<(), DSError> {
-    if dir.is_dir() {
-        let anchor = dir.to_owned();
-        let anchor_device = fd.get(&dir);
-        let contents = match fs::read_dir(&dir) {
+) -> Result<BTreeMap<String, u64>, DSError> {
+    let mut map = BTreeMap::new();
+
+    if path.is_dir() {
+        let anchor_device = fd.get(&path);
+
+        let contents = match fs::read_dir(&path) {
             Ok(contents) => contents,
             Err(err) => {
-                ve.display(&dir, err);
-                return Ok(());
+                ve.display(&path, err);
+                return Ok(map);
             }
         };
+        let mut total: u64 = 0;
         for entry in contents {
-            let entry = entry.unwrap();
-            let path = entry.path();
+            let child_path = entry.unwrap().path();
 
+            if anchor_device != fd.get(&child_path) {
+                continue;
+            }
             if symlink_or_error(&path, ve) {
                 continue;
             }
-
-            if path.is_dir() {
-                if anchor_device != fd.get(&path) {
-                    continue;
+            let mut child = match visit(child_path.to_owned(), ve, fd) {
+                Ok(child) => child,
+                Err(_) => {
+                    return Ok(map);
                 }
-                visit_dirs(path.to_owned(), mds, ve, fd)?;
-            } else {
-                increment(anchor.to_owned(), &mds, path, ve)?;
+            };
+
+            for (key, value) in child.iter() {
+                let pathname = Path::new(key);
+                let leaf = pathname.strip_prefix(&path).unwrap().to_string_lossy();
+                if !leaf.contains('/') {
+                    total += value; // Add immediate children
+                }
             }
+
+            map.append(&mut child);
         }
+        map.insert(path.to_string_lossy().to_string(), total);
+    } else {
+        let filesize = match path.metadata() {
+            #[cfg(target_os = "linux")]
+            Ok(metadata) => metadata.st_size(),
+            #[cfg(target_os = "windows")]
+            Ok(metadata) => metadata.file_size(),
+            Err(err) => {
+                ve.display(&path, err);
+                0
+            }
+        };
+        map.insert(path.to_string_lossy().to_string(), filesize);
     }
-    Ok(())
+
+    Ok(map)
 }
 
 /// Symlink_or_Error
@@ -188,36 +211,6 @@ fn symlink_or_error(path: &PathBuf, ve: &mut VerboseErrors) -> bool {
         }
     }
     false
-}
-
-/// Increment
-///
-/// Finds filesize for Linux and Windows.  Effectively skips files with
-/// errors.  Increment the size of the path and all ancestors.
-fn increment(
-    anchor: PathBuf,
-    mds: &Mutex<BTreeMap<String, u64>>,
-    path: PathBuf,
-    ve: &mut VerboseErrors,
-) -> Result<(), DSError> {
-    let filesize = match path.metadata() {
-        #[cfg(target_os = "linux")]
-        Ok(metadata) => metadata.st_size(),
-        #[cfg(target_os = "windows")]
-        Ok(metadata) => metadata.file_size(),
-        Err(err) => {
-            ve.display(&path, err);
-            0
-        }
-    };
-    for ancestor in path.ancestors() {
-        let ancestor_path = ancestor.to_string_lossy().to_string();
-        *mds.lock()?.entry(ancestor_path).or_insert(0) += filesize;
-        if anchor == ancestor {
-            break;
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -243,20 +236,20 @@ mod tests {
         assert_eq!(ve.display(&PathBuf::from("/some/path"), err), ());
     }
 
-    #[test]
-    fn increment_err() {
-        let anchor = PathBuf::from("/tmp");
-        let mds = Mutex::new(BTreeMap::new());
-        let path = PathBuf::from("/tmp/does_not_exist");
-        let mut ve = VerboseErrors::new();
-
-        mds.lock()
-            .unwrap()
-            .insert("/tmp/does_not_exist".to_string(), 0 as u64);
-        let result = increment(anchor, &mds, path, &mut ve).ok();
-        assert_eq!(result, Some(()));
-        assert_eq!(mds.lock().unwrap().get("/tmp/does_not_exist").unwrap(), &0);
-    }
+    //    #[test]
+    //    fn increment_err() {
+    //        let anchor = PathBuf::from("/tmp");
+    //        let mds = Mutex::new(BTreeMap::new());
+    //        let path = PathBuf::from("/tmp/does_not_exist");
+    //        let mut ve = VerboseErrors::new();
+    //
+    //        mds.lock()
+    //            .unwrap()
+    //            .insert("/tmp/does_not_exist".to_string(), 0 as u64);
+    //        let result = increment(anchor, &mds, path, &mut ve).ok();
+    //        assert_eq!(result, Some(()));
+    //        assert_eq!(mds.lock().unwrap().get("/tmp/does_not_exist").unwrap(), &0);
+    //    }
 
     #[test]
     fn symlink_err() {
@@ -327,6 +320,4 @@ mod tests {
         let result = fd.get(&PathBuf::from("/doesnotexist"));
         assert_eq!(result, 0);
     }
-
 }
-
