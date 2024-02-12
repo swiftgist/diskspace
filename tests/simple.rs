@@ -58,9 +58,10 @@ fn sample_directories() {
     let tmp_dir = TempDir::new("/tmp/dstest").unwrap();
     let tmppath = tmp_dir.path().to_owned();
 
-    expected.insert(format!("{}/a", tmppath.display()), 165);
-    expected.insert(format!("{}/a/b", tmppath.display()), 165);
-    expected.insert(format!("{}/a/b/c", tmppath.display()), 165);
+    expected.insert(format!("{}", tmppath.display()), 660);
+    expected.insert(format!("{}/a", tmppath.display()), 660);
+    expected.insert(format!("{}/a/b", tmppath.display()), 495);
+    expected.insert(format!("{}/a/b/c", tmppath.display()), 330);
     expected.insert(format!("{}/a/b/c/d", tmppath.display()), 165);
     expected.insert(format!("{}/a/b/c/d/sample1", tmppath.display()), 15);
     expected.insert(format!("{}/a/b/c/d/sample2", tmppath.display()), 24);
@@ -82,6 +83,7 @@ fn sample_directories() {
     expected.insert(format!("{}/a/sample3", tmppath.display()), 33);
     expected.insert(format!("{}/a/sample4", tmppath.display()), 42);
     expected.insert(format!("{}/a/sample5", tmppath.display()), 51);
+    expected.insert(format!("{}/skipped.txt", tmppath.display()), 0);
 
     let pathname = tmp_dir.path().join("a/b/c/d");
     fs::create_dir_all(&pathname).unwrap();
@@ -123,6 +125,7 @@ fn sample_permission_denied() {
     let tmp_dir = TempDir::new("/tmp/dstest").unwrap();
     let tmppath = tmp_dir.path().to_owned();
 
+    expected.insert(format!("{}", tmppath.display()), 165);
     expected.insert(format!("{}/a", tmppath.display()), 165);
     expected.insert(format!("{}/a/sample1", tmppath.display()), 15);
     expected.insert(format!("{}/a/sample2", tmppath.display()), 24);

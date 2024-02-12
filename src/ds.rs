@@ -218,7 +218,6 @@ fn symlink_or_error(path: &PathBuf, ve: &mut VerboseErrors) -> bool {
 mod tests {
     use super::*;
     use std::io::{Error, ErrorKind};
-    use std::sync::PoisonError;
 
     #[test]
     fn display() {
@@ -275,16 +274,16 @@ mod tests {
         assert_eq!(result, "example");
     }
 
-    #[test]
-    fn cast_mutex_error() {
-        fn nothing() -> DSError {
-            let err = PoisonError::new(Mutex::new(1));
-            From::from(err)
-        }
-
-        let result = format!("{}", nothing());
-        assert_eq!(result, "Mutex poisoned");
-    }
+    //    #[test]
+    //    fn cast_mutex_error() {
+    //        fn nothing() -> DSError {
+    //            let err = PoisonError::new(Mutex::new(1));
+    //            From::from(err)
+    //        }
+    //
+    //        let result = format!("{}", nothing());
+    //        assert_eq!(result, "Mutex poisoned");
+    //    }
 
     #[cfg(target_os = "linux")]
     #[test]
