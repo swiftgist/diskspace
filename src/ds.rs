@@ -1,4 +1,5 @@
 use clap::ArgMatches;
+use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fs;
@@ -10,6 +11,7 @@ use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync;
+use std::time::Instant;
 
 /// Current implementation
 /// Expand upon the basic solution from ds4.rs.  Include proper error
@@ -106,16 +108,18 @@ impl FilesystemDevice {
 /// Traverse
 ///
 /// Creats a final BTreeMap of all anchors
+// pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String, u64> {
 pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String, u64> {
     let mut ve = VerboseErrors::new();
     let mut fd = FilesystemDevice::new();
     let mut diskspace = BTreeMap::new();
+    let mut inodes = BTreeMap::new();
 
     ve.verbose = matches.occurrences_of("verbose") > 0;
     fd.enabled = matches.occurrences_of("one-filesystem") > 0;
 
     for dir in anchors {
-        let mut map = match visit(PathBuf::from(dir), &mut ve, &mut fd) {
+        let mut map = match visit(PathBuf::from(dir), &mut ve, &mut fd, &mut inodes) {
             Err(err) => {
                 eprintln!("Error: {}", err);
                 process::exit(1);
@@ -136,6 +140,7 @@ pub fn visit(
     path: PathBuf,
     ve: &mut VerboseErrors,
     fd: &mut FilesystemDevice,
+    inodes: &mut BTreeMap<u64, bool>,
 ) -> Result<BTreeMap<String, u64>, DSError> {
     let mut map = BTreeMap::new();
 
@@ -149,56 +154,76 @@ pub fn visit(
                 return Ok(map);
             }
         };
+
+        let start = Instant::now();
         let mut total: u64 = 0;
+
         for entry in contents {
             let child_path = entry.unwrap().path();
 
             if anchor_device != fd.get(&child_path) {
                 continue;
             }
-            if symlink_or_error(&path, ve) {
+            if is_symlink(&path, ve) {
                 continue;
             }
-            let mut child = match visit(child_path.to_owned(), ve, fd) {
+            let child = match visit(child_path, ve, fd, inodes) {
                 Ok(child) => child,
                 Err(_) => {
                     return Ok(map);
                 }
             };
 
-            for (key, value) in child.iter() {
-                let pathname = Path::new(key);
-                let leaf = pathname.strip_prefix(&path).unwrap().to_string_lossy();
-                if !leaf.contains('/') {
-                    total += value; // Add immediate children
-                }
+            for (k, v) in &child {
+                map.insert(k.to_string(), *v);
             }
 
-            map.append(&mut child);
+            total += sum_children(child.clone(), &path);
         }
+
         map.insert(path.to_string_lossy().to_string(), total);
+        let duration = start.elapsed();
+        if duration.as_secs() > 1 {
+            println!(
+                "Time elapsed for {} is: {:?}",
+                &path.to_string_lossy().to_string(),
+                duration
+            );
+        }
     } else {
-        let filesize = match path.metadata() {
-            #[cfg(target_os = "linux")]
-            Ok(metadata) => metadata.st_size(),
-            #[cfg(target_os = "windows")]
-            Ok(metadata) => metadata.file_size(),
-            Err(err) => {
-                ve.display(&path, err);
-                0
+        if !is_symlink(&path, ve) {
+            let inode = get_inode(&path, ve);
+            let filesize = get_filesize(&path, inodes, inode, ve);
+
+            if filesize > 0 {
+                map.insert(path.to_string_lossy().to_string(), filesize);
             }
-        };
-        map.insert(path.to_string_lossy().to_string(), filesize);
+        }
     }
 
     Ok(map)
 }
 
-/// Symlink_or_Error
+/// Sum_Children
+///
+/// Sum the size of the immediate directories and files
+fn sum_children(map: BTreeMap<String, u64>, path: &PathBuf) -> u64 {
+    let mut total: u64 = 0;
+    for (key, value) in map.iter() {
+        let pathname = Path::new(key);
+        let leaf = pathname.strip_prefix(path).unwrap().to_string_lossy();
+        if !leaf.contains('/') {
+            total += value; // Add immediate children
+        }
+    }
+    total
+}
+
+/// Is_Symlink
 ///
 /// Check if a path is a symlink.  Returns true if path is a symlink
 /// or if the metadata results in an error.
-fn symlink_or_error(path: &PathBuf, ve: &mut VerboseErrors) -> bool {
+fn is_symlink(path: &PathBuf, ve: &mut VerboseErrors) -> bool {
     match fs::symlink_metadata(&path) {
         Ok(metadata) => {
             if metadata.file_type().is_symlink() {
@@ -211,6 +236,50 @@ fn symlink_or_error(path: &PathBuf, ve: &mut VerboseErrors) -> bool {
         }
     }
     false
+}
+
+/// Get_Inode
+///
+/// Return the inode of a file
+fn get_inode(path: &PathBuf, ve: &mut VerboseErrors) -> u64 {
+    match path.metadata() {
+        #[cfg(target_os = "linux")]
+        Ok(metadata) => metadata.st_ino(),
+        #[cfg(target_os = "windows")]
+        Ok(metadata) => metadata.st_ino(),
+        Err(err) => {
+            ve.display(&path, err);
+            0
+        }
+    }
+}
+
+/// Get_Filesize
+///
+/// Return the size of a file. Skip hard links that are already counted.
+fn get_filesize(
+    path: &PathBuf,
+    inodes: &mut BTreeMap<u64, bool>,
+    inode: u64,
+    ve: &mut VerboseErrors,
+) -> u64 {
+    match inodes.entry(inode) {
+        Entry::Vacant(_o) => {
+            inodes.insert(inode, false);
+
+            match path.metadata() {
+                #[cfg(target_os = "linux")]
+                Ok(metadata) => metadata.st_size(),
+                #[cfg(target_os = "windows")]
+                Ok(metadata) => metadata.file_size(),
+                Err(err) => {
+                    ve.display(&path, err);
+                    0
+                }
+            }
+        }
+        Entry::Occupied(_o) => 0,
+    }
 }
 
 #[cfg(test)]
@@ -254,7 +323,7 @@ mod tests {
     fn symlink_err() {
         let path = PathBuf::from("/tmp/does_not_exist");
         let mut ve = VerboseErrors::new();
-        assert_eq!(symlink_or_error(&path, &mut ve), true);
+        assert_eq!(is_symlink(&path, &mut ve), true);
     }
 
     #[test]

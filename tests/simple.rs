@@ -83,7 +83,7 @@ fn sample_directories() {
     expected.insert(format!("{}/a/sample3", tmppath.display()), 33);
     expected.insert(format!("{}/a/sample4", tmppath.display()), 42);
     expected.insert(format!("{}/a/sample5", tmppath.display()), 51);
-    expected.insert(format!("{}/skipped.txt", tmppath.display()), 0);
+    // expected.insert(format!("{}/skipped.txt", tmppath.display()), 0);
 
     let pathname = tmp_dir.path().join("a/b/c/d");
     fs::create_dir_all(&pathname).unwrap();
