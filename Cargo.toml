@@ -7,13 +7,13 @@ repository = "https://github.com/swiftgist/diskspace"
 categories = [ "command-line-utilities" ]
 license = "GPL-3.0-only"
 readme = "README.md"
+edition = "2021"
 
 [badges]
 travis-ci = {repository = "swiftgist/diskspace"}
 
 [dependencies]
 clap = "2"
-rayon = "1.0.3"
 tempdir = "0.3.7"
 colored = "1.8"
 
