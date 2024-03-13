@@ -8,10 +8,10 @@ use std::io;
 use std::os::linux::fs::MetadataExt;
 #[cfg(target_os = "windows")]
 use std::os::windows::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process;
 use std::sync;
-use std::time::Instant;
+// use std::time::Instant;
 
 /// Current implementation
 /// Expand upon the basic solution from ds4.rs.  Include proper error
@@ -74,6 +74,10 @@ impl VerboseErrors {
     }
 }
 
+/// FilesystemDevice
+///
+/// Linux supports filesystems independent of directory paths.  Support restricting
+/// calculations to a single filesystem.
 pub struct FilesystemDevice {
     pub enabled: bool,
     pub device: u64,
@@ -96,8 +100,8 @@ impl FilesystemDevice {
     pub fn get(&mut self, path: &PathBuf) -> u64 {
         if self.enabled {
             match path.metadata() {
-                Err(_) => 0,
                 Ok(metadata) => metadata.st_dev(),
+                Err(_) => 0,
             }
         } else {
             0
@@ -105,180 +109,189 @@ impl FilesystemDevice {
     }
 }
 
-/// Traverse
+/// DSGroup
 ///
-/// Creats a final BTreeMap of all anchors
-// pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String, u64> {
-pub fn traverse(anchors: &Vec<String>, matches: &ArgMatches) -> BTreeMap<String, u64> {
-    let mut ve = VerboseErrors::new();
-    let mut fd = FilesystemDevice::new();
-    let mut diskspace = BTreeMap::new();
-    let mut inodes = BTreeMap::new();
-
-    ve.verbose = matches.occurrences_of("verbose") > 0;
-    fd.enabled = matches.occurrences_of("one-filesystem") > 0;
-
-    for dir in anchors {
-        let mut map = match visit(PathBuf::from(dir), &mut ve, &mut fd, &mut inodes) {
-            Err(err) => {
-                eprintln!("Error: {}", err);
-                process::exit(1);
-            }
-            Ok(map) => map,
-        };
-        diskspace.append(&mut map);
-    }
-
-    diskspace
+/// Data structures for calculations:
+///   inodes: file inodes
+///   dirs: map of directory paths and list of children
+///   sizes: final collection of sizes for all files and directories
+pub struct DSGroup {
+    pub ve: VerboseErrors,
+    pub fd: FilesystemDevice,
+    pub inodes: BTreeMap<u64, bool>,
+    pub dirs: BTreeMap<PathBuf, Vec<PathBuf>>,
+    pub sizes: BTreeMap<String, u64>,
 }
 
-/// Visit
-///
-/// Recursively search directories and returns BTreeMaps containing pathnames and
-/// filesizes.
-pub fn visit(
-    path: PathBuf,
-    ve: &mut VerboseErrors,
-    fd: &mut FilesystemDevice,
-    inodes: &mut BTreeMap<u64, bool>,
-) -> Result<BTreeMap<String, u64>, DSError> {
-    let mut map = BTreeMap::new();
+impl DSGroup {
+    pub fn new() -> DSGroup {
+        DSGroup {
+            ve: VerboseErrors::new(),
+            fd: FilesystemDevice::new(),
+            inodes: BTreeMap::new(),
+            dirs: BTreeMap::new(),
+            sizes: BTreeMap::new(),
+        }
+    }
 
-    if path.is_dir() {
-        let anchor_device = fd.get(&path);
+    /// calculate
+    ///
+    /// Check command line options.  Calculate file and directory size.  Append to map.
+    pub fn calculate(
+        &mut self,
+        anchors: &Vec<String>,
+        matches: &ArgMatches,
+    ) -> BTreeMap<String, u64> {
+        self.ve.verbose = matches.occurrences_of("verbose") > 0;
+        self.fd.enabled = matches.occurrences_of("one-filesystem") > 0;
 
-        let contents = match fs::read_dir(&path) {
-            Ok(contents) => contents,
-            Err(err) => {
-                ve.display(&path, err);
-                return Ok(map);
-            }
-        };
+        let mut diskspace = BTreeMap::new();
 
-        let start = Instant::now();
-        let mut total: u64 = 0;
+        for dir in anchors {
+            // let start = Instant::now();
+            let _ = match self.traverse(PathBuf::from(dir)) {
+                Ok(list) => list,
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    process::exit(1);
+                }
+            };
+            // let duration = start.elapsed();
+            // if duration.as_millis() > 100 {
+            //     println!("Time elapsed for files is: {:?}", duration);
+            // }
 
-        for entry in contents {
-            let child_path = entry.unwrap().path();
+            // let start = Instant::now();
+            self.calculate_dirsize();
+            // let duration = start.elapsed();
+            // if duration.as_millis() > 100 {
+            //     println!("Time elapsed for dirs is: {:?}", duration);
+            // }
 
-            if anchor_device != fd.get(&child_path) {
-                continue;
-            }
-            if is_symlink(&path, ve) {
-                continue;
-            }
-            let child = match visit(child_path, ve, fd, inodes) {
-                Ok(child) => child,
+            diskspace.append(&mut self.sizes);
+        }
+        diskspace
+    }
+
+    /// traverse
+    ///
+    /// Recursively evaluate files and collect children for directories. Skip symlinks.
+    fn traverse(&mut self, path: PathBuf) -> Result<(), DSError> {
+        if path.is_dir() {
+            let contents = match fs::read_dir(&path) {
+                Ok(contents) => contents,
                 Err(_) => {
-                    return Ok(map);
+                    return Ok(());
                 }
             };
 
-            for (k, v) in &child {
-                map.insert(k.to_string(), *v);
-            }
+            let anchor_device = self.fd.get(&path);
+            let mut children = vec![];
 
-            total += sum_children(child.clone(), &path);
+            for entry in contents {
+                let child_path = entry.unwrap().path();
+
+                if anchor_device != self.fd.get(&child_path) {
+                    continue;
+                }
+
+                if self.is_symlink(&child_path) {
+                    continue;
+                }
+
+                children.push(child_path.clone());
+
+                let _ = match self.traverse(child_path) {
+                    Ok(child) => child,
+                    Err(_) => return Ok(()),
+                };
+            }
+            self.dirs.insert(path, children);
+        } else {
+            self.record_filesize(&path);
         }
 
-        map.insert(path.to_string_lossy().to_string(), total);
-        let duration = start.elapsed();
-        if duration.as_secs() > 1 {
-            println!(
-                "Time elapsed for {} is: {:?}",
-                &path.to_string_lossy().to_string(),
-                duration
-            );
-        }
-    } else {
-        if !is_symlink(&path, ve) {
-            let inode = get_inode(&path, ve);
-            let filesize = get_filesize(&path, inodes, inode, ve);
+        Ok(())
+    }
 
-            if filesize > 0 {
-                map.insert(path.to_string_lossy().to_string(), filesize);
+    /// record_filesize
+    ///
+    /// Retrieve the inode.  Retrieve the filesize if the inode is absent. Add entry
+    /// to sizes.  Skips hard links.
+    fn record_filesize(&mut self, path: &PathBuf) {
+        let inode = match path.metadata() {
+            #[cfg(target_os = "linux")]
+            Ok(metadata) => metadata.st_ino(),
+            #[cfg(target_os = "windows")]
+            Ok(metadata) => metadata.st_ino(),
+            Err(err) => {
+                self.ve.display(&path, err);
+                0
             }
+        };
+
+        let filesize = match self.inodes.entry(inode) {
+            Entry::Vacant(_o) => {
+                self.inodes.insert(inode, false);
+
+                match path.metadata() {
+                    #[cfg(target_os = "linux")]
+                    Ok(metadata) => metadata.st_size(),
+                    #[cfg(target_os = "windows")]
+                    Ok(metadata) => metadata.file_size(),
+                    Err(err) => {
+                        self.ve.display(&path, err);
+                        0
+                    }
+                }
+            }
+            Entry::Occupied(_o) => 0,
+        };
+
+        if filesize > 0 {
+            self.sizes
+                .insert(path.to_string_lossy().to_string(), filesize);
         }
     }
 
-    Ok(map)
-}
-
-/// Sum_Children
-///
-/// Sum the size of the immediate directories and files
-fn sum_children(map: BTreeMap<String, u64>, path: &PathBuf) -> u64 {
-    let mut total: u64 = 0;
-    for (key, value) in map.iter() {
-        let pathname = Path::new(key);
-        let leaf = pathname.strip_prefix(path).unwrap().to_string_lossy();
-        if !leaf.contains('/') {
-            total += value; // Add immediate children
+    /// calculate_dirsize
+    ///
+    /// Reverse the keys of the map and sum the children.  Hard links and symlinks
+    /// are omitted.
+    fn calculate_dirsize(&mut self) {
+        for dir in self.dirs.keys().rev() {
+            let mut dirsize: u64 = 0;
+            if let Some(children) = self.dirs.get(dir) {
+                for child in children {
+                    let size = match self.sizes.get(&child.to_string_lossy().to_string()) {
+                        Some(size) => *size,
+                        None => 0,
+                    };
+                    dirsize += size;
+                }
+            }
+            self.sizes
+                .insert(dir.to_string_lossy().to_string(), dirsize);
         }
     }
-    total
-}
 
-/// Is_Symlink
-///
-/// Check if a path is a symlink.  Returns true if path is a symlink
-/// or if the metadata results in an error.
-fn is_symlink(path: &PathBuf, ve: &mut VerboseErrors) -> bool {
-    match fs::symlink_metadata(&path) {
-        Ok(metadata) => {
-            if metadata.file_type().is_symlink() {
+    /// is_symlink
+    ///
+    /// Check if a path is a symlink.  Returns true if path is a symlink
+    /// or if the metadata results in an error.
+    fn is_symlink(&mut self, path: &PathBuf) -> bool {
+        match fs::symlink_metadata(&path) {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() {
+                    return true;
+                }
+            }
+            Err(err) => {
+                self.ve.display(path, err);
                 return true;
             }
         }
-        Err(err) => {
-            ve.display(path, err);
-            return true;
-        }
-    }
-    false
-}
-
-/// Get_Inode
-///
-/// Return the inode of a file
-fn get_inode(path: &PathBuf, ve: &mut VerboseErrors) -> u64 {
-    match path.metadata() {
-        #[cfg(target_os = "linux")]
-        Ok(metadata) => metadata.st_ino(),
-        #[cfg(target_os = "windows")]
-        Ok(metadata) => metadata.st_ino(),
-        Err(err) => {
-            ve.display(&path, err);
-            0
-        }
-    }
-}
-
-/// Get_Filesize
-///
-/// Return the size of a file. Skip hard links that are already counted.
-fn get_filesize(
-    path: &PathBuf,
-    inodes: &mut BTreeMap<u64, bool>,
-    inode: u64,
-    ve: &mut VerboseErrors,
-) -> u64 {
-    match inodes.entry(inode) {
-        Entry::Vacant(_o) => {
-            inodes.insert(inode, false);
-
-            match path.metadata() {
-                #[cfg(target_os = "linux")]
-                Ok(metadata) => metadata.st_size(),
-                #[cfg(target_os = "windows")]
-                Ok(metadata) => metadata.file_size(),
-                Err(err) => {
-                    ve.display(&path, err);
-                    0
-                }
-            }
-        }
-        Entry::Occupied(_o) => 0,
+        false
     }
 }
 
