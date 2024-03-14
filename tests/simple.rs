@@ -4,7 +4,7 @@ extern crate tempdir;
 #[cfg(target_os = "linux")]
 use clap::App;
 #[cfg(target_os = "linux")]
-use ds::traverse;
+use ds::*;
 #[cfg(target_os = "linux")]
 use std::collections::BTreeMap;
 #[cfg(target_os = "linux")]
@@ -107,7 +107,8 @@ fn sample_directories() {
     );
 
     let matches = App::new("DSintegration").get_matches();
-    let disk_space = traverse(
+    let mut dsg = DSGroup::new();
+    let disk_space = dsg.calculate(
         &vec![tmp_dir.path().to_string_lossy().to_string()],
         &matches,
     );
@@ -155,7 +156,8 @@ fn sample_permission_denied() {
     let _ = Command::new("chmod").arg("0").arg(path).output();
 
     let matches = App::new("DSintegration").get_matches();
-    let disk_space = traverse(
+    let mut dsg = DSGroup::new();
+    let disk_space = dsg.calculate(
         &vec![tmp_dir.path().to_string_lossy().to_string()],
         &matches,
     );

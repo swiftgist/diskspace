@@ -335,8 +335,8 @@ mod tests {
     #[test]
     fn symlink_err() {
         let path = PathBuf::from("/tmp/does_not_exist");
-        let mut ve = VerboseErrors::new();
-        assert_eq!(is_symlink(&path, &mut ve), true);
+        let mut dsg = DSGroup::new();
+        assert_eq!(dsg.is_symlink(&path), true);
     }
 
     #[test]

@@ -24,8 +24,8 @@ path = "src/main.rs"
 
 [[bin]]
 doctest = false
-name = "dsx"
-path = "learning/main.rs"
+name = "ds-gui"
+path = "src/ds-gui.rs"
 
 [lib]
 doctest = false

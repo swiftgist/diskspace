@@ -2,7 +2,7 @@ extern crate clap;
 mod cli;
 mod ds;
 mod report;
-mod report_cli;
+mod report_gui;
 
 use crate::ds::DSGroup;
 
@@ -12,5 +12,5 @@ fn main() {
     let mut group = DSGroup::new();
 
     let disk_space = group.calculate(&anchors, &matches);
-    report_cli::report(disk_space, &matches);
+    let _list = report_gui::report_map(disk_space, &matches);
 }
