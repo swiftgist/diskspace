@@ -12,5 +12,5 @@ fn main() {
     let mut group = DSGroup::new();
 
     let disk_space = group.calculate(&anchors, &matches);
-    report_cli::report(disk_space, &matches);
+    report_cli::report(disk_space.sizes.clone(), &matches);
 }

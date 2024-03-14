@@ -16,6 +16,7 @@ travis-ci = {repository = "swiftgist/diskspace"}
 clap = "2"
 tempdir = "0.3.7"
 colored = "1.8"
+slint = "1.5.0"
 
 [[bin]]
 doctest = false

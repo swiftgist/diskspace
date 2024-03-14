@@ -137,17 +137,11 @@ impl DSGroup {
     /// calculate
     ///
     /// Check command line options.  Calculate file and directory size.  Append to map.
-    pub fn calculate(
-        &mut self,
-        anchors: &Vec<String>,
-        matches: &ArgMatches,
-    ) -> BTreeMap<String, u64> {
+    pub fn calculate(&mut self, anchors: &Vec<String>, matches: &ArgMatches) -> &mut DSGroup {
         self.ve.verbose = matches.occurrences_of("verbose") > 0;
         self.fd.enabled = matches.occurrences_of("one-filesystem") > 0;
 
-        let mut diskspace = BTreeMap::new();
-
-        for dir in anchors {
+        if let Some(dir) = anchors.iter().nth(0) {
             // let start = Instant::now();
             let _ = match self.traverse(PathBuf::from(dir)) {
                 Ok(list) => list,
@@ -167,10 +161,8 @@ impl DSGroup {
             // if duration.as_millis() > 100 {
             //     println!("Time elapsed for dirs is: {:?}", duration);
             // }
-
-            diskspace.append(&mut self.sizes);
         }
-        diskspace
+        self
     }
 
     /// traverse
